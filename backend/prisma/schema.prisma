@@ -1,0 +1,93 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum MealType {
+  BREAKFAST
+  LUNCH
+  DINNER
+  SNACKS
+}
+
+enum EntrySource {
+  MANUAL
+  AI_IMAGE
+}
+
+enum AiExtractionStatus {
+  PENDING
+  SUCCESS
+  FAILED
+}
+
+model User {
+  id            String          @id @default(uuid())
+  name          String
+  email         String          @unique
+  passwordHash  String
+  goals         NutritionGoal[]
+  foodEntries   FoodEntry[]
+  aiExtractions AiExtraction[]
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+}
+
+model NutritionGoal {
+  id             String   @id @default(uuid())
+  userId         String
+  dailyCalories  Int
+  proteinGrams   Decimal  @db.Decimal(8, 2)
+  carbGrams      Decimal  @db.Decimal(8, 2)
+  fatGrams       Decimal  @db.Decimal(8, 2)
+  weightGoalKg   Decimal? @db.Decimal(8, 2)
+  isActive       Boolean  @default(true)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, isActive])
+}
+
+model FoodEntry {
+  id        String      @id @default(uuid())
+  userId    String
+  mealType  MealType
+  foodName  String
+  quantity  Decimal     @db.Decimal(10, 2)
+  unit      String?
+  entryDate DateTime
+  calories  Int
+  protein   Decimal     @db.Decimal(8, 2)
+  carbs     Decimal     @db.Decimal(8, 2)
+  fat       Decimal     @db.Decimal(8, 2)
+  fiber     Decimal?    @db.Decimal(8, 2)
+  source    EntrySource @default(MANUAL)
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, entryDate])
+  @@index([userId, mealType])
+}
+
+model AiExtraction {
+  id                  String             @id @default(uuid())
+  userId              String
+  imagePath           String
+  rawGeminiResponse   Json?
+  parsedNutritionJson Json?
+  status              AiExtractionStatus @default(PENDING)
+  errorMessage        String?
+  createdAt           DateTime           @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+}
