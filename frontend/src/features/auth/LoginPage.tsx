@@ -1,4 +1,5 @@
 import { FormEvent, useState } from "react";
+import { Leaf, ShieldCheck } from "lucide-react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -32,10 +33,17 @@ export function LoginPage() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background p-4">
+    <div className="grid min-h-screen bg-background lg:grid-cols-[0.9fr_1.1fr]">
+      <div className="hidden flex-col justify-between bg-primary p-10 text-primary-foreground lg:flex">
+        <div className="flex items-center gap-3"><div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary-foreground/15"><Leaf className="h-5 w-5" /></div><span className="font-semibold">NutriTrack AI</span></div>
+        <div className="max-w-md"><p className="text-sm font-medium uppercase tracking-[0.18em] text-primary-foreground/70">A calmer way to eat well</p><p className="mt-5 text-4xl font-semibold leading-tight tracking-[-0.04em]">Turn everyday meals into a clearer picture of your health.</p><p className="mt-5 text-sm leading-6 text-primary-foreground/75">Log your food, understand your patterns, and make progress that feels measurable.</p></div>
+        <div className="flex items-center gap-2 text-sm text-primary-foreground/70"><ShieldCheck className="h-4 w-4" /> Your data stays tied to your account.</div>
+      </div>
+      <div className="flex items-center justify-center p-5 sm:p-8">
       <Card className="w-full max-w-md">
         <CardHeader>
-          <CardTitle>Sign in to NutriTrack AI</CardTitle>
+          <p className="page-kicker">Welcome back</p>
+          <CardTitle className="text-2xl">Sign in to NutriTrack AI</CardTitle>
         </CardHeader>
         <CardContent>
           <form className="space-y-4" onSubmit={handleSubmit}>
@@ -73,6 +81,7 @@ export function LoginPage() {
           </form>
         </CardContent>
       </Card>
+      </div>
     </div>
   );
 }

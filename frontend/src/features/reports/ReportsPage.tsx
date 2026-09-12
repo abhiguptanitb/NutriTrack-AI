@@ -111,10 +111,11 @@ export function ReportsPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="page-shell">
       <div>
-        <h1 className="text-2xl font-semibold tracking-normal">Reports</h1>
-        <p className="mt-1 text-sm text-muted-foreground">
+        <p className="page-kicker">Patterns over time</p>
+        <h1 className="page-title">Reports</h1>
+        <p className="page-description">
           Analyze weekly calories, macro distribution, and goal performance from real meal data.
         </p>
       </div>

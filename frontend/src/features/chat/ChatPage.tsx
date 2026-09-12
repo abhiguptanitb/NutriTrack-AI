@@ -77,8 +77,9 @@ export function ChatPage() {
     <div className="grid min-h-[calc(100vh-9rem)] gap-6 xl:grid-cols-[minmax(260px,0.36fr)_minmax(0,1fr)]">
       <div className="space-y-6">
         <div>
-          <h1 className="text-2xl font-semibold tracking-normal">AI Assistant</h1>
-          <p className="mt-1 text-sm text-muted-foreground">
+          <p className="page-kicker">Your nutrition copilot</p>
+          <h1 className="page-title">AI Assistant</h1>
+          <p className="page-description">
             Use natural language to work with meals, goals, progress, reports, and nutrition guidance.
           </p>
         </div>

@@ -4,24 +4,44 @@
 
 @layer base {
   :root {
-    --background: 210 20% 98%;
+    --background: 210 25% 97%;
     --foreground: 222 47% 11%;
     --card: 0 0% 100%;
     --card-foreground: 222 47% 11%;
-    --primary: 160 84% 28%;
+    --primary: 160 72% 31%;
     --primary-foreground: 0 0% 100%;
-    --secondary: 210 30% 96%;
+    --secondary: 210 24% 94%;
     --secondary-foreground: 222 47% 11%;
-    --muted: 210 30% 96%;
+    --muted: 210 24% 94%;
     --muted-foreground: 215 16% 47%;
     --accent: 199 89% 48%;
     --accent-foreground: 0 0% 100%;
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 100%;
-    --border: 214 32% 91%;
-    --input: 214 32% 91%;
-    --ring: 160 84% 28%;
-    --radius: 0.5rem;
+    --border: 214 22% 88%;
+    --input: 214 22% 84%;
+    --ring: 160 72% 31%;
+    --radius: 0.75rem;
+  }
+
+  .dark {
+    --background: 222 25% 9%;
+    --foreground: 210 20% 96%;
+    --card: 222 24% 12%;
+    --card-foreground: 210 20% 96%;
+    --primary: 158 64% 46%;
+    --primary-foreground: 222 25% 9%;
+    --secondary: 222 20% 17%;
+    --secondary-foreground: 210 20% 96%;
+    --muted: 222 20% 17%;
+    --muted-foreground: 215 16% 68%;
+    --accent: 193 72% 52%;
+    --accent-foreground: 222 25% 9%;
+    --destructive: 0 72% 58%;
+    --destructive-foreground: 210 20% 98%;
+    --border: 222 18% 23%;
+    --input: 222 18% 28%;
+    --ring: 158 64% 46%;
   }
 
   * {
@@ -29,6 +49,49 @@
   }
 
   body {
-    @apply bg-background text-foreground antialiased;
+    @apply min-w-[320px] bg-background text-foreground antialiased;
+    background-image: radial-gradient(circle at 100% 0%, hsl(var(--primary) / 0.08), transparent 28rem);
+  }
+
+  button,
+  input,
+  textarea,
+  select {
+    font: inherit;
+  }
+}
+
+@layer components {
+  .app-card {
+    @apply rounded-xl border bg-card shadow-sm transition-shadow;
+    box-shadow: 0 1px 2px hsl(222 47% 11% / 0.04), 0 12px 30px hsl(222 47% 11% / 0.04);
+  }
+
+  .dark .app-card {
+    box-shadow: 0 1px 2px hsl(0 0% 0% / 0.2), 0 16px 40px hsl(0 0% 0% / 0.12);
+  }
+
+  .theme-switcher {
+    @apply flex items-center gap-0.5 rounded-lg border bg-background/70 p-1;
+  }
+
+  .page-shell {
+    @apply mx-auto w-full max-w-[1440px] space-y-7;
+  }
+
+  .page-kicker {
+    @apply text-xs font-semibold uppercase tracking-[0.18em] text-primary;
+  }
+
+  .page-title {
+    @apply mt-1 text-3xl font-semibold tracking-[-0.03em] text-foreground;
+  }
+
+  .page-description {
+    @apply mt-2 max-w-2xl text-sm leading-6 text-muted-foreground;
+  }
+
+  .section-heading {
+    @apply text-base font-semibold tracking-[-0.01em];
   }
 }

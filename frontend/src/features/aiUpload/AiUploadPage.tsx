@@ -147,11 +147,12 @@ export function AiUploadPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="page-shell">
       <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
         <div>
-          <h1 className="text-2xl font-semibold tracking-normal">AI Nutrition Extraction</h1>
-          <p className="mt-1 max-w-2xl text-sm text-muted-foreground">
+          <p className="page-kicker">Gemini vision workflow</p>
+          <h1 className="page-title">AI Nutrition Extraction</h1>
+          <p className="page-description">
             Upload a food photo, analyze it with Gemini, review the estimates, then save it to your meal log.
           </p>
         </div>

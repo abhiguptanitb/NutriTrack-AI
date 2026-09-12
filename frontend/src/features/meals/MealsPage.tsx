@@ -369,11 +369,12 @@ export function MealsPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="page-shell">
       <div className="flex flex-col justify-between gap-4 xl:flex-row xl:items-end">
         <div>
-          <h1 className="text-2xl font-semibold tracking-normal">Meals</h1>
-          <p className="mt-1 text-sm text-muted-foreground">
+          <p className="page-kicker">Your food journal</p>
+          <h1 className="page-title">Meals</h1>
+          <p className="page-description">
             Log meals, review nutrition history, and filter entries by date or meal type.
           </p>
         </div>

@@ -91,11 +91,12 @@ export function DashboardPage() {
   const hasMealsToday = summary.mealBreakdown.some((item) => item.calories > 0);
 
   return (
-    <div className="space-y-6">
+    <div className="page-shell">
       <div className="flex flex-col justify-between gap-4 xl:flex-row xl:items-end">
         <div>
-          <h1 className="text-2xl font-semibold tracking-normal">Dashboard</h1>
-          <p className="mt-1 text-sm text-muted-foreground">
+          <p className="page-kicker">Today at a glance</p>
+          <h1 className="page-title">Dashboard</h1>
+          <p className="page-description">
             Today's nutrition progress, recent meals, and meal distribution.
           </p>
         </div>

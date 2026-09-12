@@ -3,9 +3,11 @@ import express from "express";
 import helmet from "helmet";
 import morgan from "morgan";
 import { env } from "./config/env.js";
+import { swaggerSpec } from "./config/swagger.js";
 import { errorHandler } from "./middlewares/errorHandler.js";
 import { notFoundHandler } from "./middlewares/notFoundHandler.js";
 import { apiRoutes } from "./routes/index.js";
+import swaggerUi from "swagger-ui-express";
 
 export function createApp() {
   const app = express();
@@ -19,6 +21,7 @@ export function createApp() {
     res.json({ success: true, data: { status: "ok" } });
   });
 
+  app.use("/api/docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
   app.use("/api", apiRoutes);
   app.use(notFoundHandler);
   app.use(errorHandler);

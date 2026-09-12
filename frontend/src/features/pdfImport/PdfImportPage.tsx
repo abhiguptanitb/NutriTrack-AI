@@ -108,11 +108,12 @@ export function PdfImportPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="page-shell">
       <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
         <div>
-          <h1 className="text-2xl font-semibold tracking-normal">PDF Import</h1>
-          <p className="mt-1 max-w-2xl text-sm text-muted-foreground">
+          <p className="page-kicker">Bring your history with you</p>
+          <h1 className="page-title">PDF Import</h1>
+          <p className="page-description">
             Import food diary rows from a text-based tabular PDF, review them, then save them to your meal log.
           </p>
         </div>

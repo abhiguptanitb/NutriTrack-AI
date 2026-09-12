@@ -159,11 +159,12 @@ export function GoalsPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="page-shell">
       <div className="flex flex-col justify-between gap-4 xl:flex-row xl:items-end">
         <div>
-          <h1 className="text-2xl font-semibold tracking-normal">Nutrition Goals</h1>
-          <p className="mt-1 text-sm text-muted-foreground">
+          <p className="page-kicker">Plan with intent</p>
+          <h1 className="page-title">Nutrition Goals</h1>
+          <p className="page-description">
             Set one active daily target for calories, macros, and body-weight direction.
           </p>
         </div>

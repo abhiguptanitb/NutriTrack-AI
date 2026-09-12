@@ -177,6 +177,23 @@ The API is served under `http://localhost:5000/api`. Authenticated endpoints exp
 
 Responses use the application’s `{ success, data, message }` response shape. Request validation is performed with Joi, and protected routes use the JWT authentication middleware.
 
+## Swagger Documentation
+
+Interactive OpenAPI documentation is available while the backend is running:
+
+```text
+http://localhost:5000/api/docs
+```
+
+The documentation covers all authentication, goal, food-entry, dashboard, report, AI, chat, and PDF-import endpoints. To call protected endpoints from Swagger UI:
+
+1. Register or log in through the documented auth endpoint and copy the returned `data.token` value.
+2. Select **Authorize** in the Swagger UI.
+3. Paste the JWT into the bearer authentication field and select **Authorize**.
+4. Execute protected requests; Swagger sends the token as `Authorization: Bearer <token>`.
+
+The OpenAPI document is generated with `swagger-jsdoc` and served through `swagger-ui-express`. Swagger configuration is kept in `backend/src/config/swagger.ts`.
+
 ## AI Features
 
 ### Gemini Vision Nutrition Extraction
