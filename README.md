@@ -488,4 +488,6 @@ Production hardening still recommended:
 
 ## License
 
-No license has been declared in the repository yet. Add a license file before distributing the project publicly.
+This project was developed as part of a technical assessment and is intended for evaluation and educational purposes only.
+
+All rights reserved.
