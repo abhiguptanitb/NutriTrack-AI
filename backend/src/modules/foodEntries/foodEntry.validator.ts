@@ -1,7 +1,7 @@
 import Joi from "joi";
 
 const mealType = Joi.string().valid("BREAKFAST", "LUNCH", "DINNER", "SNACKS");
-const entrySource = Joi.string().valid("MANUAL", "AI_IMAGE");
+const entrySource = Joi.string().valid("MANUAL", "AI_IMAGE", "AI_ASSISTANT", "PDF_IMPORT");
 
 export const createFoodEntrySchema = Joi.object({
   mealType: mealType.required(),
@@ -20,7 +20,7 @@ export const createFoodEntrySchema = Joi.object({
 export const updateFoodEntrySchema = createFoodEntrySchema.fork(
   ["mealType", "foodName", "quantity", "entryDate", "calories", "protein", "carbs", "fat"],
   (schema) => schema.optional()
-);
+).keys({ source: Joi.forbidden() });
 
 export const foodEntryIdSchema = Joi.object({
   id: Joi.string().uuid().required()

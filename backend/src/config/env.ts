@@ -10,6 +10,11 @@ function required(name: string) {
   return value;
 }
 
+function getGeminiModel() {
+  const configuredModel = process.env.GEMINI_MODEL;
+  return configuredModel === "gemini-2.5-flash" ? "gemini-3.6-flash" : configuredModel ?? "gemini-3.6-flash";
+}
+
 export const env = {
   NODE_ENV: process.env.NODE_ENV ?? "development",
   PORT: Number(process.env.PORT ?? 5000),
@@ -17,6 +22,6 @@ export const env = {
   JWT_SECRET: required("JWT_SECRET"),
   JWT_EXPIRES_IN: process.env.JWT_EXPIRES_IN ?? "7d",
   GEMINI_API_KEY: process.env.GEMINI_API_KEY,
-  GEMINI_MODEL: process.env.GEMINI_MODEL ?? "gemini-3.6-flash",
+  GEMINI_MODEL: getGeminiModel(),
   CLIENT_ORIGIN: process.env.CLIENT_ORIGIN ?? "http://localhost:5173"
 };

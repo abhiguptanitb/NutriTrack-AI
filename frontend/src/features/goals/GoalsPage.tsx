@@ -2,8 +2,17 @@ import { FormEvent, useEffect, useMemo, useState } from "react";
 import { AlertCircle, Loader2, Target, TrendingUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle
+} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { formatDate } from "@/lib/utils";
 import { createGoal, getActiveGoal, getGoalHistory, updateCurrentGoal } from "./goals.api";
 import type { GoalFormValues, GoalPayload, NutritionGoal } from "./goal.types";
 
@@ -49,6 +58,16 @@ function toPayload(form: GoalFormValues): GoalPayload {
   };
 }
 
+function matchesActiveGoal(payload: GoalPayload, activeGoal: NutritionGoal) {
+  return (
+    payload.dailyCalories === Number(activeGoal.dailyCalories) &&
+    payload.proteinGrams === Number(activeGoal.proteinGrams) &&
+    payload.carbGrams === Number(activeGoal.carbGrams) &&
+    payload.fatGrams === Number(activeGoal.fatGrams) &&
+    (payload.weightGoalKg ?? null) === (activeGoal.weightGoalKg === null ? null : Number(activeGoal.weightGoalKg))
+  );
+}
+
 function formatNumber(value: string | number | null) {
   if (value === null || value === "") {
     return "-";
@@ -66,6 +85,8 @@ export function GoalsPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isCreatingVersion, setIsCreatingVersion] = useState(false);
+  const [confirmationAction, setConfirmationAction] = useState<"update" | "version" | null>(null);
+  const [showDuplicateWarning, setShowDuplicateWarning] = useState(false);
   const [error, setError] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
 
@@ -116,46 +137,76 @@ export function GoalsPage() {
     };
   }, []);
 
-  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
+  async function saveGoal(createVersion: boolean) {
     setError("");
     setSuccessMessage("");
-    setIsSubmitting(true);
+    if (createVersion) {
+      setIsCreatingVersion(true);
+    } else {
+      setIsSubmitting(true);
+    }
 
     try {
       const payload = toPayload(form);
-      const response = isEditing ? await updateCurrentGoal(payload) : await createGoal(payload);
+      const response = createVersion || !isEditing ? await createGoal(payload) : await updateCurrentGoal(payload);
       const historyResponse = await getGoalHistory();
 
       setActiveGoal(response.goal);
       setGoalHistory(historyResponse.goals);
       setForm(goalToForm(response.goal));
-      setSuccessMessage(isEditing ? "Current goal updated successfully." : "Nutrition goal created successfully.");
+      setSuccessMessage(
+        createVersion
+          ? "New goal version created. Your previous active goal was archived."
+          : isEditing
+            ? "Current goal updated successfully."
+            : "Nutrition goal created successfully."
+      );
     } catch (err) {
       setError(err instanceof Error ? err.message : "Unable to save nutrition goal");
     } finally {
-      setIsSubmitting(false);
+      if (createVersion) {
+        setIsCreatingVersion(false);
+      } else {
+        setIsSubmitting(false);
+      }
     }
   }
 
-  async function handleCreateVersion() {
-    setError("");
-    setSuccessMessage("");
-    setIsCreatingVersion(true);
-
-    try {
-      const response = await createGoal(toPayload(form));
-      const historyResponse = await getGoalHistory();
-
-      setActiveGoal(response.goal);
-      setGoalHistory(historyResponse.goals);
-      setForm(goalToForm(response.goal));
-      setSuccessMessage("New goal version created. Your previous active goal was archived.");
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Unable to create a new goal version");
-    } finally {
-      setIsCreatingVersion(false);
+  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (isEditing) {
+      setConfirmationAction("update");
+      return;
     }
+
+    void saveGoal(false);
+  }
+
+  function handleCreateVersion() {
+    setConfirmationAction("version");
+  }
+
+  function handleConfirmation() {
+    if (confirmationAction === "version") {
+      const payload = toPayload(form);
+      setConfirmationAction(null);
+
+      if (activeGoal && matchesActiveGoal(payload, activeGoal)) {
+        setShowDuplicateWarning(true);
+        return;
+      }
+
+      void saveGoal(true);
+      return;
+    }
+
+    setConfirmationAction(null);
+    void saveGoal(false);
+  }
+
+  function handleDuplicateConfirmation() {
+    setShowDuplicateWarning(false);
+    void saveGoal(true);
   }
 
   return (
@@ -171,7 +222,7 @@ export function GoalsPage() {
         {activeGoal ? (
           <div className="inline-flex items-center gap-2 rounded-md border bg-card px-3 py-2 text-sm text-muted-foreground">
             <Target className="h-4 w-4 text-primary" />
-            Active since {new Date(activeGoal.createdAt).toLocaleDateString()}
+            Active since {formatDate(activeGoal.createdAt)}
           </div>
         ) : null}
       </div>
@@ -339,11 +390,13 @@ export function GoalsPage() {
             </Card>
 
             <Card>
-              <CardHeader>
+              <CardHeader className="sticky top-0 z-10 border-b bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/80">
                 <CardTitle>Goal History</CardTitle>
-                <CardDescription>All saved goal versions for this account.</CardDescription>
+                <CardDescription>
+                  Showing {goalHistory.length} goal version{goalHistory.length === 1 ? "" : "s"}
+                </CardDescription>
               </CardHeader>
-              <CardContent>
+              <CardContent className="max-h-[420px] overflow-y-auto overscroll-contain scroll-smooth pr-3 [scrollbar-color:hsl(var(--border))_transparent] sm:max-h-[650px]">
                 {goalHistory.length > 0 ? (
                   <div className="space-y-3">
                     {goalHistory.map((goal) => (
@@ -362,7 +415,7 @@ export function GoalsPage() {
                           <HistoryDetail label="Carbs" value={`${formatNumber(goal.carbGrams)} g`} />
                           <HistoryDetail label="Fat" value={`${formatNumber(goal.fatGrams)} g`} />
                           <HistoryDetail label="Weight goal" value={`${formatNumber(goal.weightGoalKg)} kg`} />
-                          <HistoryDetail label="Created" value={new Date(goal.createdAt).toLocaleDateString()} />
+                          <HistoryDetail label="Created" value={formatDate(goal.createdAt)} />
                         </dl>
                       </div>
                     ))}
@@ -377,6 +430,62 @@ export function GoalsPage() {
           </div>
         </div>
       )}
+
+      <Dialog
+        onOpenChange={(open) => {
+          if (!open) {
+            setConfirmationAction(null);
+          }
+        }}
+        open={confirmationAction !== null}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>
+              {confirmationAction === "version" ? "Create New Goal Version" : "Update Current Goal"}
+            </DialogTitle>
+            <DialogDescription>
+              {confirmationAction === "version"
+                ? "This will create a new active goal and archive the current active goal in history."
+                : "This will modify your current active goal without creating a new history version."}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button onClick={() => setConfirmationAction(null)} type="button" variant="outline">
+              Cancel
+            </Button>
+            <Button onClick={handleConfirmation} type="button">
+              {confirmationAction === "version" ? "Create Version" : "Update Goal"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog
+        onOpenChange={(open) => {
+          if (!open) {
+            setShowDuplicateWarning(false);
+          }
+        }}
+        open={showDuplicateWarning}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Duplicate Goal Version</DialogTitle>
+            <DialogDescription className="whitespace-pre-line">
+              {"The values entered are identical to your current active goal.\n\nCreating another version will not change any targets and may create unnecessary history records.\n\nDo you still want to create a new goal version?"}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button onClick={() => setShowDuplicateWarning(false)} type="button" variant="outline">
+              Cancel
+            </Button>
+            <Button onClick={handleDuplicateConfirmation} type="button">
+              Create Anyway
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

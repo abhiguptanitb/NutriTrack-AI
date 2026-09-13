@@ -3,8 +3,9 @@ import { Bot, Loader2, Send, Sparkles, UserRound } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
+import { useAuth } from "@/features/auth/AuthContext";
 import { sendChatMessage } from "./chat.api";
-import type { ChatMessage } from "./chat.types";
+import { CHAT_HISTORY_KEY_PREFIX, type ChatMessage } from "./chat.types";
 
 const examples = [
   "Log 2 bananas for breakfast",
@@ -20,15 +21,64 @@ const welcomeMessage: ChatMessage = {
     "Hi, I can help you log meals, check goals, summarize today's progress, show weekly calorie trends, and answer nutrition questions."
 };
 
+function loadMessages(storageKey: string): ChatMessage[] {
+  try {
+    const stored = localStorage.getItem(storageKey);
+    if (!stored) {
+      return [welcomeMessage];
+    }
+
+    const parsed: unknown = JSON.parse(stored);
+    if (!Array.isArray(parsed)) {
+      return [welcomeMessage];
+    }
+
+    const messages = parsed.filter(
+      (item): item is ChatMessage =>
+        Boolean(item) &&
+        typeof item === "object" &&
+        "id" in item &&
+        "role" in item &&
+        "content" in item &&
+        typeof item.id === "string" &&
+        (item.role === "user" || item.role === "assistant") &&
+        typeof item.content === "string"
+    );
+
+    return messages.length ? messages.slice(-50) : [welcomeMessage];
+  } catch {
+    return [welcomeMessage];
+  }
+}
+
 export function ChatPage() {
-  const [messages, setMessages] = useState<ChatMessage[]>([welcomeMessage]);
+  const { user } = useAuth();
+  const storageKey = user ? `${CHAT_HISTORY_KEY_PREFIX}${user.id}` : CHAT_HISTORY_KEY_PREFIX;
+  const [messages, setMessages] = useState<ChatMessage[]>(() => loadMessages(storageKey));
   const [message, setMessage] = useState("");
   const [isSending, setIsSending] = useState(false);
   const [error, setError] = useState("");
-  const scrollRef = useRef<HTMLDivElement | null>(null);
+  const messagesRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
-    scrollRef.current?.scrollIntoView({ behavior: "smooth" });
+    const storedMessages = loadMessages(storageKey);
+    setMessages(storedMessages);
+  }, [storageKey]);
+
+  useEffect(() => {
+    const history = messages.filter((item) => item.id !== welcomeMessage.id).slice(-50);
+    if (history.length) {
+      localStorage.setItem(storageKey, JSON.stringify(history));
+    } else {
+      localStorage.removeItem(storageKey);
+    }
+  }, [messages, storageKey]);
+
+  useEffect(() => {
+    const container = messagesRef.current;
+    if (container) {
+      container.scrollTo({ top: container.scrollHeight, behavior: "smooth" });
+    }
   }, [messages, isSending]);
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
@@ -73,9 +123,16 @@ export function ChatPage() {
     setError("");
   }
 
+  function clearChat() {
+    localStorage.removeItem(storageKey);
+    setMessages([welcomeMessage]);
+    setMessage("");
+    setError("");
+  }
+
   return (
-    <div className="grid min-h-[calc(100vh-9rem)] gap-6 xl:grid-cols-[minmax(260px,0.36fr)_minmax(0,1fr)]">
-      <div className="space-y-6">
+    <div className="grid min-h-0 gap-6 xl:h-[calc(100vh-9rem)] xl:grid-cols-[minmax(260px,0.36fr)_minmax(0,1fr)]">
+      <div className="min-h-0 space-y-6 overflow-y-auto pr-1">
         <div>
           <p className="page-kicker">Your nutrition copilot</p>
           <h1 className="page-title">AI Assistant</h1>
@@ -118,15 +175,20 @@ export function ChatPage() {
         </Card>
       </div>
 
-      <Card className="flex min-h-[620px] flex-col">
-        <CardHeader className="border-b">
-          <CardTitle className="flex items-center gap-2 text-base">
-            <Bot className="h-4 w-4" />
-            Conversational Nutrition Assistant
-          </CardTitle>
+      <Card className="flex h-[calc(100vh-9rem)] min-h-0 flex-col overflow-hidden">
+        <CardHeader className="shrink-0 border-b">
+          <div className="flex items-center justify-between gap-3">
+            <CardTitle className="flex items-center gap-2 text-base">
+              <Bot className="h-4 w-4" />
+              Conversational Nutrition Assistant
+            </CardTitle>
+            <Button onClick={clearChat} size="sm" type="button" variant="outline">
+              Clear Chat
+            </Button>
+          </div>
         </CardHeader>
-        <CardContent className="flex flex-1 flex-col p-0">
-          <div className="flex-1 space-y-4 overflow-y-auto p-4 md:p-6">
+        <CardContent className="flex min-h-0 flex-1 flex-col overflow-hidden p-0">
+          <div className="min-h-0 flex-1 space-y-4 overflow-y-auto overscroll-contain scroll-smooth p-4 md:p-6" ref={messagesRef}>
             {messages.map((item) => (
               <div className={cn("flex gap-3", item.role === "user" && "justify-end")} key={item.id}>
                 {item.role === "assistant" ? (
@@ -140,8 +202,7 @@ export function ChatPage() {
                     item.role === "assistant" ? "border bg-card" : "bg-primary text-primary-foreground"
                   )}
                 >
-                  <p>{item.content}</p>
-                  {item.intent ? <p className="mt-2 text-xs opacity-70">Intent: {formatIntent(item.intent)}</p> : null}
+                  <p className="whitespace-pre-line">{item.role === "assistant" ? cleanAssistantResponse(item.content) : item.content}</p>
                 </div>
                 {item.role === "user" ? (
                   <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-primary text-primary-foreground">
@@ -163,12 +224,11 @@ export function ChatPage() {
               </div>
             ) : null}
 
-            <div ref={scrollRef} />
           </div>
 
-          {error ? <div className="border-t px-4 py-3 text-sm text-destructive md:px-6">{error}</div> : null}
+          {error ? <div className="shrink-0 border-t px-4 py-3 text-sm text-destructive md:px-6">{error}</div> : null}
 
-          <form className="border-t p-4 md:p-6" onSubmit={handleSubmit}>
+          <form className="sticky bottom-0 shrink-0 border-t bg-card p-4 md:p-6" onSubmit={handleSubmit}>
             <div className="flex flex-col gap-3 md:flex-row">
               <textarea
                 className="min-h-20 flex-1 resize-none rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
@@ -188,9 +248,17 @@ export function ChatPage() {
   );
 }
 
-function formatIntent(intent: string) {
-  return intent
-    .split("_")
-    .map((part) => part.charAt(0) + part.slice(1).toLowerCase())
-    .join(" ");
+function cleanAssistantResponse(content: string) {
+  return content
+    .replace(/```[a-zA-Z0-9_-]*\n?/g, "")
+    .replace(/\*\*|__|`/g, "")
+    .replace(/\*([^*\n]+)\*/g, "$1")
+    .replace(/_([^_\n]+)_/g, "$1")
+    .replace(/^\s{0,3}#{1,6}\s+/gm, "")
+    .replace(/^\s*[-*+]\s+/gm, "")
+    .replace(/^\s*([-*_]){3,}\s*$/gm, "")
+    .replace(/^\s*>\s?/gm, "")
+    .replace(/\[([^\]]+)\]\([^)]*\)/g, "$1")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
 }

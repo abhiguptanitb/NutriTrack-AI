@@ -17,6 +17,8 @@ enum MealType {
 enum EntrySource {
   MANUAL
   AI_IMAGE
+  AI_ASSISTANT
+  PDF_IMPORT
 }
 
 enum AiExtractionStatus {

@@ -1,5 +1,5 @@
 export type MealType = "BREAKFAST" | "LUNCH" | "DINNER" | "SNACKS";
-export type EntrySource = "MANUAL" | "AI_IMAGE";
+export type EntrySource = "MANUAL" | "AI_IMAGE" | "AI_ASSISTANT" | "PDF_IMPORT";
 
 export type FoodEntry = {
   id: string;
@@ -30,7 +30,7 @@ export type FoodEntryFormValues = {
   fat: string;
   fiber: string;
   entryDate: string;
-  source: EntrySource;
+  entryTime: string;
 };
 
 export type FoodEntryPayload = {
@@ -44,7 +44,6 @@ export type FoodEntryPayload = {
   fat: number;
   fiber?: number;
   entryDate: string;
-  source?: EntrySource;
 };
 
 export type FoodEntryFilters = {

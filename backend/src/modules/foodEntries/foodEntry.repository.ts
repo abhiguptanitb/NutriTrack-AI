@@ -45,5 +45,5 @@ export type FoodEntryData = {
   carbs: number;
   fat: number;
   fiber?: number;
-  source?: "MANUAL" | "AI_IMAGE";
+  source?: "MANUAL" | "AI_IMAGE" | "AI_ASSISTANT" | "PDF_IMPORT";
 };

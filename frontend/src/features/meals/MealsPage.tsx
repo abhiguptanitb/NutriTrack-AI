@@ -16,7 +16,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { getActiveGoal } from "@/features/goals/goals.api";
 import type { NutritionGoal } from "@/features/goals/goal.types";
-import { cn } from "@/lib/utils";
+import { cn, formatDateTime } from "@/lib/utils";
 import { createFoodEntry, deleteFoodEntry, listFoodEntries, updateFoodEntry } from "./meals.api";
 import type {
   EntrySource,
@@ -37,8 +37,13 @@ const mealTypes: Array<{ value: MealType; label: string }> = [
 
 const sources: Array<{ value: EntrySource; label: string }> = [
   { value: "MANUAL", label: "Manual" },
-  { value: "AI_IMAGE", label: "AI Image" }
+  { value: "AI_IMAGE", label: "AI Image" },
+  { value: "AI_ASSISTANT", label: "AI Assistant" },
+  { value: "PDF_IMPORT", label: "PDF Import" }
 ];
+
+const futureEntryDateMessage = "Food entries cannot be created for a future date.";
+const futureEntryTimeMessage = "Future times cannot be selected for today's meals.";
 
 const emptyForm: FoodEntryFormValues = {
   foodName: "",
@@ -50,8 +55,8 @@ const emptyForm: FoodEntryFormValues = {
   carbs: "",
   fat: "",
   fiber: "",
-  entryDate: toDateTimeLocalValue(new Date()),
-  source: "MANUAL"
+  entryDate: toDateInputValue(new Date()),
+  entryTime: toTimeInputValue(new Date())
 };
 
 const defaultPagination: PaginationMeta = {
@@ -62,12 +67,14 @@ const defaultPagination: PaginationMeta = {
 };
 
 function toDateInputValue(date: Date) {
-  return date.toISOString().slice(0, 10);
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
 }
 
-function toDateTimeLocalValue(date: Date) {
-  const offsetDate = new Date(date.getTime() - date.getTimezoneOffset() * 60000);
-  return offsetDate.toISOString().slice(0, 16);
+function toTimeInputValue(date: Date) {
+  return `${String(date.getHours()).padStart(2, "0")}:${String(date.getMinutes()).padStart(2, "0")}`;
 }
 
 function foodEntryToForm(entry: FoodEntry): FoodEntryFormValues {
@@ -81,8 +88,8 @@ function foodEntryToForm(entry: FoodEntry): FoodEntryFormValues {
     carbs: String(entry.carbs),
     fat: String(entry.fat),
     fiber: entry.fiber === null ? "" : String(entry.fiber),
-    entryDate: toDateTimeLocalValue(new Date(entry.entryDate)),
-    source: entry.source
+    entryDate: toDateInputValue(new Date(entry.entryDate)),
+    entryTime: toTimeInputValue(new Date(entry.entryDate))
   };
 }
 
@@ -97,8 +104,7 @@ function toPayload(form: FoodEntryFormValues): FoodEntryPayload {
     carbs: Number(form.carbs),
     fat: Number(form.fat),
     fiber: form.fiber ? Number(form.fiber) : undefined,
-    entryDate: new Date(form.entryDate).toISOString(),
-    source: form.source
+    entryDate: new Date(`${form.entryDate}T${form.entryTime}`).toISOString()
   };
 }
 
@@ -283,10 +289,27 @@ export function MealsPage() {
     event.preventDefault();
     setError("");
     setSuccessMessage("");
+
+    const today = toDateInputValue(new Date());
+    if (form.entryDate > today) {
+      setError(futureEntryDateMessage);
+      return;
+    }
+
+    if (form.entryDate === today && form.entryTime > toTimeInputValue(new Date())) {
+      setError(futureEntryTimeMessage);
+      return;
+    }
+
+    const payload = toPayload(form);
+    if (new Date(payload.entryDate).getTime() > Date.now()) {
+      setError(form.entryDate === today ? futureEntryTimeMessage : futureEntryDateMessage);
+      return;
+    }
+
     setIsSubmitting(true);
 
     try {
-      const payload = toPayload(form);
       if (editingEntryId) {
         await updateFoodEntry(editingEntryId, payload);
         setSuccessMessage("Food entry updated successfully.");
@@ -295,7 +318,7 @@ export function MealsPage() {
         setSuccessMessage("Food entry created successfully.");
       }
 
-      setForm({ ...emptyForm, entryDate: toDateTimeLocalValue(new Date()) });
+      setForm({ ...emptyForm, entryDate: toDateInputValue(new Date()), entryTime: toTimeInputValue(new Date()) });
       setEditingEntryId(null);
       await refreshEntries(editingEntryId ? filters.page : 1);
       await refreshTodayContext();
@@ -338,7 +361,7 @@ export function MealsPage() {
 
   function handleCancelEdit() {
     setEditingEntryId(null);
-    setForm({ ...emptyForm, entryDate: toDateTimeLocalValue(new Date()) });
+    setForm({ ...emptyForm, entryDate: toDateInputValue(new Date()), entryTime: toTimeInputValue(new Date()) });
     setError("");
   }
 
@@ -378,7 +401,9 @@ export function MealsPage() {
             Log meals, review nutrition history, and filter entries by date or meal type.
           </p>
         </div>
-        <Button onClick={() => setForm({ ...emptyForm, entryDate: toDateTimeLocalValue(new Date()) })}>
+        <Button
+          onClick={() => setForm({ ...emptyForm, entryDate: toDateInputValue(new Date()), entryTime: toTimeInputValue(new Date()) })}
+        >
           <Plus className="h-4 w-4" />
           New meal
         </Button>
@@ -441,9 +466,6 @@ export function MealsPage() {
                       value={form.unit}
                     />
                   </div>
-                </div>
-
-                <div className="grid gap-4 sm:grid-cols-2">
                   <SelectField
                     id="mealType"
                     label="Meal type"
@@ -451,16 +473,6 @@ export function MealsPage() {
                     options={mealTypes}
                     value={form.mealType}
                   />
-                  <SelectField
-                    id="source"
-                    label="Source"
-                    onChange={(value) => setForm((current) => ({ ...current, source: value as EntrySource }))}
-                    options={sources}
-                    value={form.source}
-                  />
-                </div>
-
-                <div className="grid gap-4 sm:grid-cols-2">
                   <NumberField
                     label="Calories"
                     name="calories"
@@ -504,10 +516,22 @@ export function MealsPage() {
                     <Label htmlFor="entryDate">Entry date</Label>
                     <Input
                       id="entryDate"
+                      max={toDateInputValue(new Date())}
                       onChange={(event) => setForm((current) => ({ ...current, entryDate: event.target.value }))}
                       required
-                      type="datetime-local"
+                      type="date"
                       value={form.entryDate}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="entryTime">Entry time</Label>
+                    <Input
+                      id="entryTime"
+                      max={form.entryDate === toDateInputValue(new Date()) ? toTimeInputValue(new Date()) : undefined}
+                      onChange={(event) => setForm((current) => ({ ...current, entryTime: event.target.value }))}
+                      required
+                      type="time"
+                      value={form.entryTime}
                     />
                   </div>
                 </div>
@@ -581,6 +605,7 @@ export function MealsPage() {
                   <Label htmlFor="startDate">Start date</Label>
                   <Input
                     id="startDate"
+                    max={toDateInputValue(new Date())}
                     onChange={(event) =>
                       setDraftFilters((current) => ({ ...current, startDate: event.target.value }))
                     }
@@ -592,6 +617,7 @@ export function MealsPage() {
                   <Label htmlFor="endDate">End date</Label>
                   <Input
                     id="endDate"
+                    max={toDateInputValue(new Date())}
                     onChange={(event) => setDraftFilters((current) => ({ ...current, endDate: event.target.value }))}
                     type="date"
                     value={draftFilters.endDate}
@@ -633,7 +659,11 @@ export function MealsPage() {
                     Add your first meal for today, or clear the filters to review your full nutrition history.
                   </p>
                   <div className="mt-5 flex justify-center gap-2">
-                    <Button onClick={() => setForm({ ...emptyForm, entryDate: toDateTimeLocalValue(new Date()) })}>
+                    <Button
+                      onClick={() =>
+                        setForm({ ...emptyForm, entryDate: toDateInputValue(new Date()), entryTime: toTimeInputValue(new Date()) })
+                      }
+                    >
                       <Plus className="h-4 w-4" />
                       Add meal
                     </Button>
@@ -667,7 +697,7 @@ export function MealsPage() {
                               </p>
                             </td>
                             <td className="px-4 py-3">{formatMealType(entry.mealType)}</td>
-                            <td className="px-4 py-3">{new Date(entry.entryDate).toLocaleString()}</td>
+                            <td className="px-4 py-3">{formatDateTime(entry.entryDate)}</td>
                             <td className="px-4 py-3">{formatNumber(entry.calories, 0)} kcal</td>
                             <td className="px-4 py-3 text-xs text-muted-foreground">
                               P {formatNumber(entry.protein)}g / C {formatNumber(entry.carbs)}g / F{" "}
@@ -709,7 +739,7 @@ export function MealsPage() {
                         </div>
                         <div className="grid grid-cols-2 gap-2 text-sm">
                           <MobileDetail label="Quantity" value={`${formatNumber(entry.quantity)} ${entry.unit ?? ""}`} />
-                          <MobileDetail label="Date" value={toDateInputValue(new Date(entry.entryDate))} />
+                          <MobileDetail label="Date" value={formatDateTime(entry.entryDate)} />
                           <MobileDetail label="Calories" value={`${formatNumber(entry.calories, 0)} kcal`} />
                           <MobileDetail label="Protein" value={`${formatNumber(entry.protein)} g`} />
                           <MobileDetail label="Carbs" value={`${formatNumber(entry.carbs)} g`} />
@@ -922,7 +952,13 @@ function SourceBadge({ source }: { source: EntrySource }) {
     <span
       className={cn(
         "rounded-md px-2 py-1 text-xs font-medium",
-        source === "AI_IMAGE" ? "bg-accent/10 text-accent" : "bg-secondary text-muted-foreground"
+        source === "AI_IMAGE"
+          ? "bg-accent/10 text-accent"
+          : source === "AI_ASSISTANT"
+            ? "bg-primary/10 text-primary"
+            : source === "PDF_IMPORT"
+              ? "bg-secondary text-foreground"
+            : "bg-secondary text-muted-foreground"
       )}
     >
       {formatSource(source)}

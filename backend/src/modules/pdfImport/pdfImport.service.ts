@@ -1,5 +1,6 @@
 
 import { createRequire } from "node:module";
+import { env } from "../../config/env.js";
 import { AppError } from "../../utils/appError.js";
 import { PdfImportRepository, type PdfImportFoodEntryData } from "./pdfImport.repository.js";
 import { pdfImportEntrySchema } from "./pdfImport.validator.js";
@@ -21,6 +22,16 @@ const pdfImportRepository = new PdfImportRepository();
 
 const datePattern = String.raw`(?:\d{4}-\d{1,2}-\d{1,2}|\d{1,2}[/-]\d{1,2}[/-]\d{2,4})`;
 const mealPattern = String.raw`(?:breakfast|lunch|dinner|snacks?|snack)`;
+const requiredHeaders = ["Date", "Food Name", "Meal Type", "Calories", "Protein", "Carbs", "Fat"];
+const headerAliases: Record<string, string[]> = {
+  Date: ["date", "entrydate", "loggeddate"],
+  "Food Name": ["food", "foodname", "item", "mealitem", "description"],
+  "Meal Type": ["meal", "mealtype", "category"],
+  Calories: ["calories", "calorie", "kcal", "energy"],
+  Protein: ["protein", "prot"],
+  Carbs: ["carbs", "carbohydrates", "carbohydrate"],
+  Fat: ["fat", "fats"]
+};
 
 export class PdfImportService {
   async preview(file: Express.Multer.File | undefined) {
@@ -32,14 +43,22 @@ export class PdfImportService {
     const entries = this.parseEntries(text);
 
     if (!entries.length) {
-      throw new AppError("No valid food diary rows were found in this PDF", 400);
+      throw new AppError(
+        "Unsupported PDF format: no valid tabular rows could be parsed. Use a text-based table or CSV exported to PDF with preserved column separators.",
+        400
+      );
     }
 
-    return { entries };
+    return {
+      entries,
+      ...(env.NODE_ENV !== "production" ? { extractedText: text } : {})
+    };
   }
 
   async confirm(userId: string, entries: PreviewEntry[]) {
+    console.debug("PDF import raw rows:", entries);
     const validatedEntries = entries.map((entry, index) => this.validateEntry(entry, index));
+    console.debug("PDF import mapped DTOs:", validatedEntries);
     const count = await pdfImportRepository.createMany(userId, validatedEntries);
 
     return {
@@ -55,6 +74,8 @@ export class PdfImportService {
       if (!text) {
         throw new AppError("The PDF does not contain extractable text", 400);
       }
+
+      console.debug("PDF extracted text:\n", text);
 
       return text;
     } catch (error) {
@@ -72,13 +93,18 @@ export class PdfImportService {
       .map((line) => line.replace(/\s+/g, " ").trim())
       .filter(Boolean);
 
-    const headerIndex = lines.findIndex((line) => this.isSupportedHeader(line));
-    if (headerIndex === -1) {
+    const headerMatch = this.findHeader(lines);
+    if (!headerMatch) {
+      console.debug("PDF detected headers:", []);
       throw new AppError("Missing required columns: Date, Food Name, Meal Type, Calories, Protein, Carbs, Fat", 400);
     }
 
+    const detectedHeaders = this.detectHeaders(headerMatch.text);
+    console.debug("PDF detected headers:", detectedHeaders);
+    console.debug("PDF normalized headers:", detectedHeaders.map((header) => this.normalizeHeader(header)));
+
     const entries: PreviewEntry[] = [];
-    const candidateLines = lines.slice(headerIndex + 1);
+    const candidateLines = lines.slice(headerMatch.endIndex + 1);
 
     for (const line of candidateLines) {
       const entry = this.parseLine(line);
@@ -88,24 +114,85 @@ export class PdfImportService {
       }
     }
 
+    console.debug("PDF parsed rows:", entries);
     return entries;
   }
 
   private isSupportedHeader(line: string) {
-    const normalized = line.toLowerCase();
-    const hasDate = /\b(date|entry date|logged date)\b/.test(normalized);
-    const hasFood = /\b(food|food name|item|meal item|description)\b/.test(normalized);
-    const hasMeal = /\b(meal|meal type|category)\b/.test(normalized);
-    const hasCalories = /\b(calories|calorie|kcal|energy)\b/.test(normalized);
-    const hasProtein = /\b(protein|prot)\b/.test(normalized);
-    const hasCarbs = /\b(carbs|carbohydrates|carbohydrate)\b/.test(normalized);
-    const hasFat = /\b(fat|fats)\b/.test(normalized);
+    return this.detectHeaders(line).length === requiredHeaders.length;
+  }
 
-    return hasDate && hasFood && hasMeal && hasCalories && hasProtein && hasCarbs && hasFat;
+  private findHeader(lines: string[]) {
+    for (let startIndex = 0; startIndex < lines.length; startIndex += 1) {
+      for (let span = 1; span <= Math.min(requiredHeaders.length, lines.length - startIndex); span += 1) {
+        const text = lines.slice(startIndex, startIndex + span).join(" ");
+        if (this.isSupportedHeader(text)) {
+          return { text, endIndex: startIndex + span - 1 };
+        }
+      }
+    }
+
+    return null;
+  }
+
+  private detectHeaders(line: string) {
+    const normalized = this.normalizeHeader(line);
+    return requiredHeaders.filter((header) => headerAliases[header].some((alias) => normalized.includes(alias)));
+  }
+
+  private normalizeHeader(value: string) {
+    return value.replace(/\s+/g, "").toLowerCase();
   }
 
   private parseLine(line: string): PreviewEntry | null {
-    return this.parseDelimitedLine(line) ?? this.parseSpaceSeparatedLine(line);
+    return this.parseMealAnchoredLine(line) ?? this.parseDelimitedLine(line) ?? this.parseSpaceSeparatedLine(line);
+  }
+
+  private parseMealAnchoredLine(line: string): PreviewEntry | null {
+    const dateMatch = line.match(new RegExp(`^(${datePattern})`, "i"));
+    if (!dateMatch) {
+      return null;
+    }
+
+    const remainder = line.slice(dateMatch[0].length);
+    const mealMatch = remainder.match(new RegExp(`(${mealPattern})(?=$|[^a-z])`, "i"));
+    if (!mealMatch || mealMatch.index === undefined) {
+      return null;
+    }
+
+    const foodName = remainder.slice(0, mealMatch.index).trim();
+    const nutritionText = remainder.slice(mealMatch.index + mealMatch[0].length).trim();
+    if (!foodName || !nutritionText) {
+      return null;
+    }
+
+    const separatedValues = nutritionText.match(/^(\d+(?:\.\d+)?)[\s,|]+(\d+(?:\.\d+)?)[\s,|]+(\d+(?:\.\d+)?)[\s,|]+(\d+(?:\.\d+)?)$/);
+    if (separatedValues) {
+      return this.toPreviewEntry({
+        date: dateMatch[1],
+        foodName,
+        mealType: mealMatch[1],
+        calories: separatedValues[1],
+        protein: separatedValues[2],
+        carbs: separatedValues[3],
+        fat: separatedValues[4]
+      });
+    }
+
+    const compactValues = nutritionText.match(/^(\d{2,4})(\d{2})(\d{2})(\d{1,2})$/);
+    if (!compactValues) {
+      return null;
+    }
+
+    return this.toPreviewEntry({
+      date: dateMatch[1],
+      foodName,
+      mealType: mealMatch[1],
+      calories: compactValues[1],
+      protein: compactValues[2],
+      carbs: compactValues[3],
+      fat: compactValues[4]
+    });
   }
 
   private parseDelimitedLine(line: string): PreviewEntry | null {
@@ -187,16 +274,32 @@ export class PdfImportService {
   }
 
   private validateEntry(entry: PreviewEntry, index: number): PdfImportFoodEntryData {
-    const { error, value } = pdfImportEntrySchema.validate(entry, { stripUnknown: true });
+    console.debug(`PDF import raw row ${index + 1}:`, entry);
+    const { error, value } = pdfImportEntrySchema.validate(entry, { stripUnknown: true, convert: false });
 
     if (error) {
       throw new AppError(`Row ${index + 1} is invalid: ${error.details[0]?.message ?? "Invalid food entry"}`, 400);
     }
 
-    return {
-      ...value,
-      entryDate: new Date(value.entryDate)
+    if (new Date(value.entryDate).getTime() > Date.now()) {
+      throw new AppError("Food entries cannot be created for a future date.", 400);
+    }
+
+    const mappedEntry = {
+      entryDate: value.entryDate,
+      foodName: value.foodName,
+      mealType: value.mealType,
+      calories: value.calories,
+      protein: value.protein,
+      carbs: value.carbs,
+      fat: value.fat
     } as PdfImportFoodEntryData;
+    console.debug(`PDF import validated row ${index + 1}:`, mappedEntry);
+
+    return {
+      ...mappedEntry,
+      entryDate: new Date(mappedEntry.entryDate)
+    };
   }
 
   private parseDate(value: string) {

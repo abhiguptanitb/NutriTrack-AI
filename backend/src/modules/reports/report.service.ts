@@ -5,6 +5,26 @@ const reportRepository = new ReportRepository();
 const dayLabels = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
 export class ReportService {
+  async weeklyCalorieSummary(userId: string, startDate: Date, endDate: Date) {
+    const [trend, totals] = await Promise.all([
+      this.weeklyCalories(userId, startDate, endDate),
+      reportRepository.nutritionTotals(userId, startDate, this.endOfDay(endDate))
+    ]);
+    const totalCalories = trend.reduce((sum, day) => sum + day.calories, 0);
+    const reportingDays = this.daysBetween(startDate, endDate).length;
+
+    return {
+      trend,
+      totalCalories,
+      averageCalories: reportingDays ? Math.round(totalCalories / reportingDays) : 0,
+      reportingDays,
+      totalProtein: Number(totals._sum.protein ?? 0),
+      totalCarbs: Number(totals._sum.carbs ?? 0),
+      totalFat: Number(totals._sum.fat ?? 0),
+      mealCount: totals._count._all
+    };
+  }
+
   async weeklyCalories(userId: string, startDate: Date, endDate: Date) {
     const rows = await reportRepository.weeklyCalorieTrend(userId, startDate, this.endOfDay(endDate));
     const caloriesByDate = new Map(

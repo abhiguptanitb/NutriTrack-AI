@@ -5,6 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import type { MealType } from "@/features/meals/meal.types";
 import { getDashboardSummary } from "./dashboard.api";
 import type { DashboardSummary } from "./dashboard.types";
+import { formatDateTime } from "@/lib/utils";
 
 const macroCards = [
   { key: "calories", label: "Calories", unit: "kcal" },
@@ -199,7 +200,7 @@ export function DashboardPage() {
                   <div>
                     <p className="font-medium">{meal.foodName}</p>
                     <p className="text-sm text-muted-foreground">
-                      {mealLabels[meal.mealType]} - {new Date(meal.entryDate).toLocaleString()}
+                      {mealLabels[meal.mealType]} - {formatDateTime(meal.entryDate)}
                     </p>
                   </div>
                   <div className="text-sm font-medium">{formatNumber(meal.calories, 0)} kcal</div>

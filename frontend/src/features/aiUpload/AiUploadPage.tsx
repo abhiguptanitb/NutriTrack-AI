@@ -1,5 +1,6 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { AlertCircle, Camera, CheckCircle2, Loader2, Save, Sparkles, Upload } from "lucide-react";
+import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -14,6 +15,7 @@ type ReviewForm = {
   unit: string;
   mealType: MealType;
   entryDate: string;
+  entryTime: string;
   calories: string;
   protein: string;
   carbs: string;
@@ -33,13 +35,25 @@ const emptyForm: ReviewForm = {
   quantity: "",
   unit: "",
   mealType: "BREAKFAST",
-  entryDate: new Date().toISOString().slice(0, 10),
+  entryDate: toDateInputValue(new Date()),
+  entryTime: toTimeInputValue(new Date()),
   calories: "",
   protein: "",
   carbs: "",
   fat: "",
   fiber: ""
 };
+
+function toDateInputValue(date: Date) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+function toTimeInputValue(date: Date) {
+  return `${String(date.getHours()).padStart(2, "0")}:${String(date.getMinutes()).padStart(2, "0")}`;
+}
 
 export function AiUploadPage() {
   const [image, setImage] = useState<File | null>(null);
@@ -50,6 +64,30 @@ export function AiUploadPage() {
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const successTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  function resetUploadState(preserveSuccess = false) {
+    fileInputRef.current && (fileInputRef.current.value = "");
+    setImage(null);
+    setPreviewUrl("");
+    setForm(emptyForm);
+    setHasResult(false);
+    setError("");
+    if (!preserveSuccess) {
+      setSuccess("");
+    }
+    setIsAnalyzing(false);
+    setIsSaving(false);
+  }
+
+  useEffect(() => {
+    return () => {
+      if (successTimerRef.current) {
+        clearTimeout(successTimerRef.current);
+      }
+    };
+  }, []);
 
   useEffect(() => {
     if (!image) {
@@ -79,8 +117,13 @@ export function AiUploadPage() {
   function handleImageChange(event: React.ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0] ?? null;
     setImage(file);
+    setForm(emptyForm);
     setError("");
     setSuccess("");
+    if (successTimerRef.current) {
+      clearTimeout(successTimerRef.current);
+      successTimerRef.current = null;
+    }
     setHasResult(false);
   }
 
@@ -117,13 +160,26 @@ export function AiUploadPage() {
     setError("");
     setSuccess("");
 
+    const today = toDateInputValue(new Date());
+    if (form.entryDate > today) {
+      setIsSaving(false);
+      setError("Food entries cannot be created for a future date.");
+      return;
+    }
+
+    if (form.entryDate === today && form.entryTime > toTimeInputValue(new Date())) {
+      setIsSaving(false);
+      setError("Future times cannot be selected for today's meals.");
+      return;
+    }
+
     try {
       await saveAiFoodEntry({
         foodName: form.foodName.trim(),
         quantity: toNumber(form.quantity),
         unit: form.unit.trim(),
         mealType: form.mealType,
-        entryDate: form.entryDate,
+        entryDate: new Date(`${form.entryDate}T${form.entryTime}`).toISOString(),
         calories: Math.round(toNumber(form.calories)),
         protein: toNumber(form.protein),
         carbs: toNumber(form.carbs),
@@ -132,9 +188,11 @@ export function AiUploadPage() {
       });
 
       setSuccess("Food entry saved successfully.");
-      setHasResult(false);
-      setImage(null);
-      setForm(emptyForm);
+      resetUploadState(true);
+      successTimerRef.current = setTimeout(() => {
+        setSuccess("");
+        successTimerRef.current = null;
+      }, 4000);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Unable to save the food entry.");
     } finally {
@@ -153,11 +211,12 @@ export function AiUploadPage() {
           <p className="page-kicker">Gemini vision workflow</p>
           <h1 className="page-title">AI Nutrition Extraction</h1>
           <p className="page-description">
-            Upload a food photo, analyze it with Gemini, review the estimates, then save it to your meal log.
+            Upload a food photo, nutrition label, nutrition facts panel, food packaging, or meal screenshot. Gemini will
+            analyze the image, extract nutrition information, and let you review the results before saving.
           </p>
         </div>
         <div className="rounded-md border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
-          AI-generated nutrition estimates may not always be accurate. Please review before saving.
+          For best results, upload clear and readable images. AI-generated nutrition estimates should be reviewed before saving.
         </div>
       </div>
 
@@ -169,9 +228,14 @@ export function AiUploadPage() {
       ) : null}
 
       {success ? (
-        <div className="flex items-start gap-2 rounded-md border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
-          <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0" />
-          <span>{success}</span>
+        <div className="flex flex-col gap-2 rounded-md border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-start gap-2">
+            <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0" />
+            <span>{success}</span>
+          </div>
+          <Link className="font-medium underline-offset-4 hover:underline sm:shrink-0" to="/meals">
+            View in meal log -&gt;
+          </Link>
         </div>
       ) : null}
 
@@ -181,18 +245,31 @@ export function AiUploadPage() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-base">
                 <Upload className="h-4 w-4" />
-                Step 1: Upload image
+                Step 1: Upload food photo or nutrition label
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              <Input type="file" accept="image/*" onChange={handleImageChange} />
+              <Input ref={fileInputRef} type="file" accept="image/*" onChange={handleImageChange} />
+              <div className="space-y-2 text-sm text-muted-foreground">
+                <p className="font-medium text-foreground">Supported images:</p>
+                <ul className="list-disc space-y-1 pl-5">
+                  <li>Food photos</li>
+                  <li>Nutrition facts labels</li>
+                  <li>Food packaging</li>
+                  <li>Nutrition screenshots</li>
+                  <li>Meal screenshots</li>
+                </ul>
+                <p>
+                  The AI will attempt to extract calories, protein, carbs, fat, fiber, serving size, and food details.
+                </p>
+              </div>
               <div className="flex aspect-[4/3] items-center justify-center overflow-hidden rounded-md border bg-secondary/40">
                 {previewUrl ? (
                   <img src={previewUrl} alt="Selected food preview" className="h-full w-full object-cover" />
                 ) : (
                   <div className="flex flex-col items-center gap-2 text-sm text-muted-foreground">
                     <Camera className="h-8 w-8" />
-                    Food image preview
+                    Image preview
                   </div>
                 )}
               </div>
@@ -263,7 +340,20 @@ export function AiUploadPage() {
                   </div>
                   <Field label="Quantity" type="number" value={form.quantity} onChange={(value) => updateField("quantity", value)} />
                   <Field label="Unit" value={form.unit} onChange={(value) => updateField("unit", value)} />
-                  <Field label="Entry date" type="date" value={form.entryDate} onChange={(value) => updateField("entryDate", value)} />
+                  <Field
+                    label="Entry date"
+                    max={toDateInputValue(new Date())}
+                    type="date"
+                    value={form.entryDate}
+                    onChange={(value) => updateField("entryDate", value)}
+                  />
+                  <Field
+                    label="Entry time"
+                    max={form.entryDate === toDateInputValue(new Date()) ? toTimeInputValue(new Date()) : undefined}
+                    type="time"
+                    value={form.entryTime}
+                    onChange={(value) => updateField("entryTime", value)}
+                  />
                   <Field label="Calories" type="number" value={form.calories} onChange={(value) => updateField("calories", value)} />
                   <Field label="Protein (g)" type="number" value={form.protein} onChange={(value) => updateField("protein", value)} />
                   <Field label="Carbs (g)" type="number" value={form.carbs} onChange={(value) => updateField("carbs", value)} />
@@ -294,17 +384,26 @@ function Field({
   label,
   value,
   onChange,
-  type = "text"
+  type = "text",
+  max
 }: {
   label: string;
   value: string;
-  type?: "text" | "number" | "date";
+  type?: "text" | "number" | "date" | "time";
+  max?: string;
   onChange: (value: string) => void;
 }) {
   return (
     <div className="space-y-2">
       <Label>{label}</Label>
-      <Input min={type === "number" ? "0" : undefined} step={type === "number" ? "0.01" : undefined} type={type} value={value} onChange={(event) => onChange(event.target.value)} />
+      <Input
+        max={max}
+        min={type === "number" ? "0" : undefined}
+        step={type === "number" ? "0.01" : undefined}
+        type={type}
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+      />
     </div>
   );
 }
@@ -315,7 +414,8 @@ function toReviewForm(nutrition: ExtractedNutrition): ReviewForm {
     quantity: String(nutrition.quantity || 1),
     unit: nutrition.unit,
     mealType: "BREAKFAST",
-    entryDate: new Date().toISOString().slice(0, 10),
+    entryDate: toDateInputValue(new Date()),
+    entryTime: toTimeInputValue(new Date()),
     calories: String(nutrition.calories),
     protein: String(nutrition.protein),
     carbs: String(nutrition.carbs),

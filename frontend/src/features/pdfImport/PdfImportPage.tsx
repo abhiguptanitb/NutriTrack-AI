@@ -11,9 +11,17 @@ import type { MealType } from "@/features/meals/meal.types";
 
 const mealOptions: MealType[] = ["BREAKFAST", "LUNCH", "DINNER", "SNACKS"];
 
+function toDateInputValue(date: Date) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
 export function PdfImportPage() {
   const [file, setFile] = useState<File | null>(null);
   const [entries, setEntries] = useState<PdfImportEntry[]>([]);
+  const [extractedText, setExtractedText] = useState("");
   const [isDragging, setIsDragging] = useState(false);
   const [isPreviewing, setIsPreviewing] = useState(false);
   const [isImporting, setIsImporting] = useState(false);
@@ -26,6 +34,7 @@ export function PdfImportPage() {
     setError("");
     setSuccess("");
     setEntries([]);
+    setExtractedText("");
 
     if (!nextFile) {
       setFile(null);
@@ -60,8 +69,10 @@ export function PdfImportPage() {
     try {
       const data = await previewPdfImport(file);
       setEntries(data.entries);
+      setExtractedText(data.extractedText ?? "");
     } catch (err) {
       setEntries([]);
+      setExtractedText("");
       setError(err instanceof Error ? err.message : "Unable to preview PDF import.");
     } finally {
       setIsPreviewing(false);
@@ -79,6 +90,7 @@ export function PdfImportPage() {
     setSuccess("");
 
     try {
+      console.debug("PDF import request payload:", entries);
       const data = await confirmPdfImport(entries);
       setSuccess(`${data.count} food entries imported successfully.`);
       setEntries([]);
@@ -109,7 +121,7 @@ export function PdfImportPage() {
 
   return (
     <div className="page-shell">
-      <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
+      <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
         <div>
           <p className="page-kicker">Bring your history with you</p>
           <h1 className="page-title">PDF Import</h1>
@@ -117,8 +129,17 @@ export function PdfImportPage() {
             Import food diary rows from a text-based tabular PDF, review them, then save them to your meal log.
           </p>
         </div>
-        <div className="rounded-md border bg-secondary/40 px-4 py-3 text-sm text-muted-foreground">
-          Only text-based tabular PDFs are supported. OCR and scanned PDFs are intentionally out of scope for the MVP.
+        <div className="w-full max-w-2xl rounded-lg border bg-secondary/35 px-4 py-3 text-sm text-muted-foreground lg:w-auto">
+          <div className="grid gap-3 sm:grid-cols-2 sm:gap-6">
+            <div>
+              <p className="font-semibold text-foreground">Supported</p>
+              <p className="mt-1 leading-5">Text-based tabular PDFs and CSV exports saved as PDF.</p>
+            </div>
+            <div>
+              <p className="font-semibold text-foreground">Not supported</p>
+              <p className="mt-1 leading-5">Scanned, image, or OCR PDFs, or files with lost table columns.</p>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -170,6 +191,12 @@ export function PdfImportPage() {
                 {isPreviewing ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileText className="h-4 w-4" />}
                 {isPreviewing ? "Parsing PDF..." : "Preview extracted rows"}
               </Button>
+              {import.meta.env.DEV && extractedText ? (
+                <details className="rounded-md border bg-background p-3 text-xs text-muted-foreground">
+                  <summary className="cursor-pointer font-medium text-foreground">Development: extracted PDF text</summary>
+                  <pre className="mt-3 max-h-64 overflow-auto whitespace-pre-wrap">{extractedText}</pre>
+                </details>
+              ) : null}
             </CardContent>
           </Card>
 
@@ -179,8 +206,8 @@ export function PdfImportPage() {
             </CardHeader>
             <CardContent className="space-y-3 text-sm text-muted-foreground">
               <p>Required columns: Date, Food Name, Meal Type, Calories, Protein, Carbs, Fat.</p>
-              <p>Supported row styles: comma, tab, pipe, or clear space-separated tabular text.</p>
-              <p>Scanned PDFs and image-only documents will fail because OCR is out of scope.</p>
+              <p>Rows must retain comma, tab, pipe, or clear space-separated column boundaries.</p>
+              <p>Preview proceeds only when the required headers and at least one valid row are parsed.</p>
             </CardContent>
           </Card>
         </div>
@@ -194,8 +221,15 @@ export function PdfImportPage() {
               </p>
             </div>
             {entries.length ? (
-              <div className="rounded-md border bg-secondary/30 px-3 py-2 text-sm">
-                {entries.length} rows · {totalCalories} kcal
+              <div className="grid grid-cols-2 gap-2 text-sm sm:flex sm:items-center">
+                <div className="rounded-md border bg-secondary/30 px-3 py-2">
+                  <p className="text-xs text-muted-foreground">Imported Rows</p>
+                  <p className="font-semibold">{entries.length}</p>
+                </div>
+                <div className="rounded-md border bg-secondary/30 px-3 py-2">
+                  <p className="text-xs text-muted-foreground">Total Calories</p>
+                  <p className="font-semibold">{totalCalories} kcal</p>
+                </div>
               </div>
             ) : null}
           </CardHeader>
@@ -210,30 +244,32 @@ export function PdfImportPage() {
               </div>
             ) : (
               <div className="space-y-4 p-4">
-                <div className="overflow-x-auto">
-                  <table className="min-w-[900px] w-full text-sm">
-                    <thead>
-                      <tr className="border-b text-left text-xs uppercase text-muted-foreground">
-                        <th className="px-2 py-3">Date</th>
-                        <th className="px-2 py-3">Food Name</th>
-                        <th className="px-2 py-3">Meal Type</th>
-                        <th className="px-2 py-3">Calories</th>
-                        <th className="px-2 py-3">Protein</th>
-                        <th className="px-2 py-3">Carbs</th>
-                        <th className="px-2 py-3">Fat</th>
-                        <th className="px-2 py-3"></th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {entries.map((entry, index) => (
-                        <tr className="border-b last:border-0" key={`${entry.entryDate}-${entry.foodName}-${index}`}>
-                          <td className="px-2 py-3">
-                            <Input type="date" value={entry.entryDate} onChange={(event) => updateEntry(index, "entryDate", event.target.value)} />
-                          </td>
-                          <td className="px-2 py-3">
-                            <Input value={entry.foodName} onChange={(event) => updateEntry(index, "foodName", event.target.value)} />
-                          </td>
-                          <td className="px-2 py-3">
+                <div className="grid gap-4 lg:grid-cols-2">
+                  {entries.map((entry, index) => {
+                    const rowError = getRowError(entry);
+
+                    return (
+                      <div className="rounded-xl border bg-card p-4 shadow-sm sm:p-5" key={`${entry.entryDate}-${entry.foodName}-${index}`}>
+                        <div className="flex items-start justify-between gap-3 border-b pb-4">
+                          <div className="min-w-0 flex-1">
+                            <span className="inline-flex rounded-md bg-primary/10 px-2 py-1 text-xs font-semibold text-primary">
+                              Row {index + 1}
+                            </span>
+                            <Label className="mt-3 block">Food name</Label>
+                            <Input
+                              className="mt-2 text-base font-medium"
+                              value={entry.foodName}
+                              onChange={(event) => updateEntry(index, "foodName", event.target.value)}
+                            />
+                          </div>
+                          <Button size="sm" type="button" variant="ghost" onClick={() => removeEntry(index)}>
+                            Remove
+                          </Button>
+                        </div>
+
+                        <div className="mt-4 grid gap-4 sm:grid-cols-2">
+                          <div className="space-y-2">
+                            <Label>Meal type</Label>
                             <select
                               className="h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
                               value={entry.mealType}
@@ -245,27 +281,47 @@ export function PdfImportPage() {
                                 </option>
                               ))}
                             </select>
-                          </td>
+                          </div>
+                          <div className="space-y-2">
+                            <Label>Date</Label>
+                            <Input
+                              max={toDateInputValue(new Date())}
+                              type="date"
+                              value={entry.entryDate}
+                              onChange={(event) => updateEntry(index, "entryDate", event.target.value)}
+                            />
+                          </div>
+                        </div>
+
+                        <div className="mt-4 grid gap-3 sm:grid-cols-2">
                           {(["calories", "protein", "carbs", "fat"] as const).map((field) => (
-                            <td className="px-2 py-3" key={field}>
-                              <Input
-                                min="0"
-                                step={field === "calories" ? "1" : "0.01"}
-                                type="number"
-                                value={entry[field]}
-                                onChange={(event) => updateEntry(index, field, event.target.value)}
-                              />
-                            </td>
+                            <div className="space-y-2" key={field}>
+                              <Label>{field.charAt(0).toUpperCase() + field.slice(1)}</Label>
+                              <div className="relative">
+                                <Input
+                                  className="pr-14"
+                                  min="0"
+                                  step={field === "calories" ? "1" : "0.01"}
+                                  type="number"
+                                  value={entry[field]}
+                                  onChange={(event) => updateEntry(index, field, event.target.value)}
+                                />
+                                <span className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-xs text-muted-foreground">
+                                  {field === "calories" ? "kcal" : "g"}
+                                </span>
+                              </div>
+                            </div>
                           ))}
-                          <td className="px-2 py-3 text-right">
-                            <Button size="sm" type="button" variant="outline" onClick={() => removeEntry(index)}>
-                              Remove
-                            </Button>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
+                        </div>
+
+                        {rowError ? (
+                          <div className="mt-4 rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">
+                            {rowError}
+                          </div>
+                        ) : null}
+                      </div>
+                    );
+                  })}
                 </div>
 
                 <div className="flex flex-col gap-3 rounded-md border bg-secondary/20 p-4 sm:flex-row sm:items-center sm:justify-between">
@@ -289,4 +345,24 @@ export function PdfImportPage() {
 
 function formatMealType(mealType: MealType) {
   return mealType.charAt(0) + mealType.slice(1).toLowerCase();
+}
+
+function getRowError(entry: PdfImportEntry) {
+  if (!entry.foodName.trim()) {
+    return "Food name is required.";
+  }
+
+  if (!entry.entryDate) {
+    return "Date is required.";
+  }
+
+  if (entry.entryDate > toDateInputValue(new Date())) {
+    return "Future meal dates are not allowed.";
+  }
+
+  if (![entry.calories, entry.protein, entry.carbs, entry.fat].every((value) => Number.isFinite(Number(value)) && Number(value) >= 0)) {
+    return "Calories and macro values must be valid non-negative numbers.";
+  }
+
+  return null;
 }

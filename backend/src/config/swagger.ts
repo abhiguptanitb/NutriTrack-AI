@@ -105,7 +105,7 @@ const openApiDefinition = {
           carbs: { type: "number", example: 68 },
           fat: { type: "number", example: 18 },
           fiber: { type: "number", nullable: true, example: 8 },
-          source: { type: "string", enum: ["MANUAL", "AI_IMAGE"] },
+          source: { type: "string", enum: ["MANUAL", "AI_IMAGE", "AI_ASSISTANT", "PDF_IMPORT"] },
           createdAt: { type: "string", format: "date-time" },
           updatedAt: { type: "string", format: "date-time" }
         }
@@ -131,7 +131,7 @@ const openApiDefinition = {
       ChatResponse: {
         type: "object",
         properties: {
-          intent: { type: "string", enum: ["CREATE_FOOD_ENTRY", "GET_CURRENT_GOAL", "GET_TODAY_PROGRESS", "GET_WEEKLY_REPORT", "NUTRITION_QUESTION", "UNKNOWN"] },
+          intent: { type: "string", enum: ["CREATE_FOOD_ENTRY", "GET_CURRENT_GOAL", "GET_TODAY_PROGRESS", "GET_WEEKLY_REPORT", "LIST_MEALS", "NUTRITION_QUESTION", "UNKNOWN"] },
           reply: { type: "string" },
           data: { type: "object", nullable: true, additionalProperties: true }
         }

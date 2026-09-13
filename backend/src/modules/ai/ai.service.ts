@@ -2,6 +2,7 @@ import { GoogleGenerativeAI } from "@google/generative-ai";
 import fs from "node:fs/promises";
 import { env } from "../../config/env.js";
 import { AppError } from "../../utils/appError.js";
+import { assertEntryDateTimeNotFuture } from "../../utils/entryDateTime.js";
 import { FoodEntryRepository } from "../foodEntries/foodEntry.repository.js";
 import { AiRepository } from "./ai.repository.js";
 
@@ -70,15 +71,19 @@ export class AiService {
 
       return { extraction: saved, nutrition };
     } catch (error) {
-      await aiRepository.markFailed(extraction.id, this.getErrorMessage(error));
-      throw new AppError("Unable to extract nutrition from image", 502);
+      const errorMessage = this.getErrorMessage(error);
+      console.error(`AI nutrition extraction failed using ${env.GEMINI_MODEL}: ${errorMessage}`);
+      await aiRepository.markFailed(extraction.id, errorMessage);
+      throw new AppError(`Unable to extract nutrition from image: ${errorMessage}`, 502);
     }
   }
 
   saveExtractedEntry(userId: string, data: SaveExtractedEntryInput) {
+    const entryDate = new Date(data.entryDate);
+    assertEntryDateTimeNotFuture(entryDate);
     return foodEntryRepository.create(userId, {
       ...data,
-      entryDate: new Date(data.entryDate),
+      entryDate,
       source: "AI_IMAGE"
     });
   }

@@ -12,6 +12,7 @@ export type PdfImportEntry = {
 
 export type PdfImportPreviewResponse = {
   entries: PdfImportEntry[];
+  extractedText?: string;
 };
 
 export type PdfImportConfirmResponse = {

@@ -4,14 +4,23 @@ import { prisma } from "../../config/prisma.js";
 export class PdfImportRepository {
   createMany(userId: string, entries: PdfImportFoodEntryData[]) {
     return prisma.$transaction(async (tx) => {
+      const data = entries.map((entry) => ({
+        userId,
+        entryDate: entry.entryDate,
+        foodName: entry.foodName,
+        mealType: entry.mealType,
+        calories: entry.calories,
+        protein: entry.protein,
+        carbs: entry.carbs,
+        fat: entry.fat,
+        quantity: 1,
+        unit: "serving",
+        source: "PDF_IMPORT" as const
+      }));
+      console.debug("PDF import final database payload:", data);
+
       const result = await tx.foodEntry.createMany({
-        data: entries.map((entry) => ({
-          userId,
-          ...entry,
-          quantity: 1,
-          unit: "serving",
-          source: "MANUAL"
-        }))
+        data
       });
 
       return result.count;

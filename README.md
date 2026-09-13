@@ -1,74 +1,434 @@
 # NutriTrack AI
 
-NutriTrack AI is a personal nutrition and calorie tracking application built for recording food intake, managing daily nutrition goals, and understanding progress over time. It combines conventional food logging and reporting with Gemini-powered nutrition extraction, a focused conversational assistant, and text-based PDF diary import.
+<p align="center">
+  <strong>A focused nutrition workspace for goals, meals, insights, and AI-assisted logging.</strong><br />
+  Track what you eat, understand your progress, and keep your nutrition history organized in one place.
+</p>
+
+<p align="center">
+  <a href="#features"><img src="https://img.shields.io/badge/status-MVP-10b981?style=flat-square" alt="MVP status" /></a>
+  <a href="#technology-stack"><img src="https://img.shields.io/badge/frontend-React%2019-61dafb?style=flat-square&logo=react&logoColor=white" alt="React 19" /></a>
+  <a href="#technology-stack"><img src="https://img.shields.io/badge/backend-Express%205-111827?style=flat-square&logo=express&logoColor=white" alt="Express 5" /></a>
+  <a href="#database-schema"><img src="https://img.shields.io/badge/database-PostgreSQL%2016-336791?style=flat-square&logo=postgresql&logoColor=white" alt="PostgreSQL 16" /></a>
+  <a href="#docker-setup"><img src="https://img.shields.io/badge/containerized-Docker-2496ed?style=flat-square&logo=docker&logoColor=white" alt="Docker" /></a>
+</p>
+
+## Overview
+
+NutriTrack AI is a full-stack nutrition tracking application built around a simple workflow: define nutrition goals, record meals, review progress, and learn from trends. It combines conventional food logging with Gemini-powered image analysis, a conversational assistant, and structured PDF diary import.
+
+The project is designed as a practical SaaS-style MVP with authenticated, user-scoped data; a modular Express backend; a responsive React interface; and a PostgreSQL database managed through Prisma.
+
+## Problem It Solves
+
+Nutrition data is often split between notes, screenshots, food labels, spreadsheets, and disconnected tracking tools. NutriTrack AI brings those inputs into one reviewable meal log while keeping the user in control of AI-generated estimates and imported records.
+
+## Demo Video
+
+> Replace the placeholder below with a YouTube, Google Drive, or Loom URL.
+
+[Watch the NutriTrack AI Demo](ADD_DEMO_VIDEO_LINK_HERE)
+
+## Project Gallery
+
+The gallery below is ready for final product screenshots. Replace each placeholder with an image URL without changing the surrounding structure.
+
+| Dashboard | Meal Tracking |
+| --- | --- |
+| [Insert Dashboard Screenshot](ADD_DASHBOARD_IMAGE_URL_HERE) | [Insert Meals Screenshot](ADD_MEALS_IMAGE_URL_HERE) |
+
+| AI Nutrition Review | AI Assistant |
+| --- | --- |
+| [Insert AI Nutrition Screenshot](ADD_AI_NUTRITION_IMAGE_URL_HERE) | [Insert AI Assistant Screenshot](ADD_AI_ASSISTANT_IMAGE_URL_HERE) |
+
+| PDF Import | Reports |
+| --- | --- |
+| [Insert PDF Import Screenshot](ADD_PDF_IMPORT_IMAGE_URL_HERE) | [Insert Reports Screenshot](ADD_REPORTS_IMAGE_URL_HERE) |
+
+See the full placeholder checklist in [Screenshots](#screenshots).
 
 ## Features
 
-### Core Features
+### Authentication and Account Security
 
-- **Authentication:** Register, log in, retrieve the current user, and protect user-owned data with JWT bearer tokens.
-- **Goal management:** Create an active daily goal, update it, view the current goal, and review goal history.
-- **Food entry management:** Create, list, inspect, update, and delete entries containing meal type, quantity, calories, protein, carbohydrates, fat, and optional fiber.
-- **Filtering and pagination:** Filter food entries by date range and meal type, with page and limit controls.
-- **Dashboard:** View today’s consumed totals, goal targets, percentage progress, meal breakdown, and recent meals.
-- **Reports:** View daily calorie trends over a range, macro totals, and actual-versus-goal comparisons for a date.
-- **AI nutrition extraction:** Upload a food or nutrition-label image, extract estimated nutrition values with Gemini Vision, review the result, and save it as a food entry.
+- User registration and login with JWT bearer authentication.
+- Password hashing with bcrypt.
+- Protected frontend routes and authenticated API routes.
+- Current-user lookup and user-scoped data access.
+- Logout clears the browser session and local AI Assistant chat history.
 
-### Bonus Features
+### Nutrition Goal Management
 
-- **Conversational chat assistant:** A Gemini-backed assistant that classifies supported nutrition and app requests, logs meals, reports progress, retrieves goals, and answers nutrition questions.
-- **Bulk import via PDF:** Upload a text-based food diary, preview parsed rows, and confirm up to 200 entries at once.
-- **Multi-user support:** Users, goals, food entries, and AI extraction records are isolated by authenticated user ID.
+- Create an active daily nutrition goal.
+- Update the current goal without creating a history version.
+- Create a new goal version while archiving the previous active goal.
+- View active and historical goals.
+- Confirmation dialogs for goal updates and new versions.
+- Duplicate-version warning when submitted values match the active goal.
 
-## Tech Stack
+### Food Entry Management
+
+- Create, list, inspect, edit, and delete meal entries.
+- Track food name, quantity, unit, meal type, calories, protein, carbs, fat, fiber, and entry timestamp.
+- Separate date and 24-hour time inputs with future-date/time validation.
+- Date filtering, meal-type filtering, pagination, and responsive meal views.
+- Immutable origin metadata for `MANUAL`, `AI_IMAGE`, `AI_ASSISTANT`, and `PDF_IMPORT` entries.
+- Source badges remain visible after an entry is edited.
+- Human-readable 24-hour timestamps without seconds.
+
+### AI Nutrition Extraction
+
+- Upload food photos, nutrition labels, nutrition facts panels, food packaging, or meal screenshots.
+- Gemini analyzes the image and returns estimated food and nutrition values.
+- Review extracted values before saving.
+- Editable entry date and time with the same future timestamp rules as manual entry.
+- Saved image-derived entries use `source = AI_IMAGE`.
+- Successful saves show feedback and reset the selected file, preview, result, and form.
+- Extraction failures retain a specific diagnostic reason in backend records and logs.
+
+### AI Assistant
+
+- Gemini-backed intent classification for supported nutrition workflows.
+- Conversational meal creation with explicit date/time parsing.
+- Support for 12-hour and 24-hour time input, normalized before storage.
+- Nutrition goal and current-progress responses with percentages and exceeded amounts.
+- Weekly calorie reports based on stored food entries.
+- Actual meal listing for today, yesterday, date ranges, last seven days, and this week.
+- LocalStorage persistence for the latest 50 messages per user.
+- Clear Chat action and automatic scroll within the message panel.
+- Assistant-created entries use `source = AI_ASSISTANT`.
+
+### PDF Import
+
+- Upload a text-based tabular food diary PDF.
+- Preview parsed rows before confirmation.
+- Responsive editable meal cards instead of a horizontally scrolling spreadsheet.
+- Supports structured delimiters and deterministic meal-type-anchored rows when separators are lost.
+- Editable food name, meal type, date, calories, protein, carbs, and fat.
+- Row-level validation, imported-row count, and total-calorie summary.
+- PDF-created entries use `source = PDF_IMPORT`.
+- Development diagnostics expose extracted text, detected headers, parsed rows, DTOs, and final database payloads.
+
+### Dashboard
+
+- Today’s calories and macro totals.
+- Goal targets and percentage progress.
+- Meal-type calorie breakdown.
+- Recent meal list with source and timestamp information.
+
+### Reporting and Analytics
+
+- Weekly calorie trend charts.
+- Macro breakdown charts for protein, carbs, and fat.
+- Actual-versus-goal comparison for a selected date.
+- Chat weekly reports with total calories, average daily calories, macros, and meal count.
+
+### Theme and Responsive Design
+
+- Light, dark, and system theme modes.
+- Theme preference persisted in localStorage.
+- Responsive layouts for desktop, tablet, and mobile.
+- Desktop sidebar navigation and mobile navigation bar.
+- Responsive meal cards, PDF review cards, forms, charts, and chat layout.
+
+## Screenshots
+
+Replace each placeholder with a Markdown image link, for example:
+
+```markdown
+![Login Page](assets/screenshots/login.png)
+```
+
+### Login Page
+
+<!-- Replace with: ![Login Page](YOUR_IMAGE_URL) -->
+
+[Insert Login Screenshot Here](ADD_LOGIN_IMAGE_URL_HERE)
+
+### Dashboard
+
+<!-- Replace with: ![Dashboard](YOUR_IMAGE_URL) -->
+
+[Insert Dashboard Screenshot Here](ADD_DASHBOARD_IMAGE_URL_HERE)
+
+### Goals Management
+
+<!-- Replace with: ![Goals Management](YOUR_IMAGE_URL) -->
+
+[Insert Goals Screenshot Here](ADD_GOALS_IMAGE_URL_HERE)
+
+### Meal Tracking
+
+<!-- Replace with: ![Meal Tracking](YOUR_IMAGE_URL) -->
+
+[Insert Meals Screenshot Here](ADD_MEALS_IMAGE_URL_HERE)
+
+### AI Nutrition Analysis
+
+<!-- Replace with: ![AI Nutrition Analysis](YOUR_IMAGE_URL) -->
+
+[Insert AI Nutrition Screenshot Here](ADD_AI_NUTRITION_IMAGE_URL_HERE)
+
+### AI Assistant
+
+<!-- Replace with: ![AI Assistant](YOUR_IMAGE_URL) -->
+
+[Insert AI Assistant Screenshot Here](ADD_AI_ASSISTANT_IMAGE_URL_HERE)
+
+### PDF Import
+
+<!-- Replace with: ![PDF Import](YOUR_IMAGE_URL) -->
+
+[Insert PDF Import Screenshot Here](ADD_PDF_IMPORT_IMAGE_URL_HERE)
+
+### Reports and Analytics
+
+<!-- Replace with: ![Reports and Analytics](YOUR_IMAGE_URL) -->
+
+[Insert Reports Screenshot Here](ADD_REPORTS_IMAGE_URL_HERE)
+
+## Technology Stack
 
 ### Frontend
 
-- React 19
-- TypeScript
-- Vite
-- Tailwind CSS
-- Recharts
-- shadcn/ui-style components built on Radix UI primitives
+- React 19, TypeScript, Vite, Tailwind CSS
+- React Router and Recharts
+- Radix UI primitives, shadcn-style components, and Lucide icons
 
 ### Backend
 
-- Node.js
-- Express.js 5
-- TypeScript
-- Multer for image and PDF uploads
-- Helmet, CORS, and Morgan middleware
+- Node.js, Express 5, and TypeScript
+- Joi validation, Multer uploads, Helmet, CORS, and Morgan
 
-### Database
+### Data and Integrations
 
-- PostgreSQL 16
-- Prisma ORM 6
-
-### Authentication and Validation
-
-- JWT for access tokens
-- bcrypt for password hashing
-- Joi for backend request validation
-- Zod and React Hook Form for frontend form handling
-
-### AI and Operations
-
+- PostgreSQL 16 and Prisma ORM 6
 - Google Gemini through `@google/generative-ai`
-- `pdf-parse` for text extraction from PDFs
+- `pdf-parse` for text extraction
 - Docker and Docker Compose
 
-## Architecture
+## System Architecture
 
-NutriTrack AI uses a **modular monolith**. The backend is deployed as one application, but each business capability is organized into an independent module with its own routes, controller, service, repository, and validation code.
+```mermaid
+flowchart LR
+    Browser[React + Vite Frontend] --> API[Express API]
+    API --> Auth[JWT Auth Middleware]
+    Auth --> Modules[Feature Modules]
+    Modules --> Services[Services]
+    Services --> Repositories[Repositories]
+    Repositories --> Prisma[Prisma Client]
+    Prisma --> DB[(PostgreSQL)]
+    Services --> Gemini[Google Gemini]
+    API --> Files[Uploads Volume]
+```
+
+The backend follows a modular monolith pattern:
 
 ```text
 HTTP request
-	 |
-	 v
-Route -> Validation/Auth middleware -> Controller -> Service -> Repository -> Prisma -> PostgreSQL
+  -> Route
+  -> Auth / validation middleware
+  -> Controller
+  -> Service
+  -> Repository
+  -> Prisma
+  -> PostgreSQL
 ```
 
-Controllers translate HTTP requests into application calls and standardize responses. Services contain business rules and orchestration. Repositories own database queries, while Prisma provides the database client and type-safe persistence layer. This structure keeps the MVP straightforward to deploy while preserving clear boundaries for future extraction into separate services if the product grows.
+## API Documentation
+
+The API is prefixed with `/api` and returns the standard `{ success, data, message }` response shape.
+
+### Public Endpoints
+
+| Method | Endpoint | Purpose |
+| --- | --- | --- |
+| `GET` | `/api/health` | Health check |
+| `POST` | `/api/auth/register` | Register a user |
+| `POST` | `/api/auth/login` | Log in and receive a JWT |
+| `GET` | `/api/docs` | Swagger UI |
+
+### Authenticated Endpoint Groups
+
+| Area | Endpoints |
+| --- | --- |
+| Goals | `/api/goals/current`, `/api/goals/history`, `/api/goals` |
+| Food entries | `/api/food-entries`, `/api/food-entries/:id` |
+| Dashboard | `/api/dashboard/summary` |
+| Reports | `/api/reports/weekly-calories`, `/macro-breakdown`, `/goal-comparison` |
+| AI | `/api/ai/extract-nutrition`, `/api/ai/save-entry` |
+| Assistant | `/api/chat/message` |
+| PDF import | `/api/pdf-import/preview`, `/api/pdf-import/confirm` |
+
+Protected routes expect:
+
+```http
+Authorization: Bearer <jwt>
+```
+
+### Swagger / OpenAPI
+
+With the backend running, open:
+
+```text
+http://localhost:5000/api/docs
+```
+
+The interactive Swagger UI is generated from `backend/src/config/swagger.ts` and documents authentication, goals, food entries, dashboard, reports, AI, chat, and PDF import endpoints.
+
+## Database Schema
+
+Prisma schema: `backend/prisma/schema.prisma`
+
+### Models
+
+- `User`: account identity and ownership root.
+- `NutritionGoal`: active and historical calorie/macro targets.
+- `FoodEntry`: timestamped meals and immutable origin source.
+- `AiExtraction`: image extraction lifecycle, raw response, normalized nutrition, and failure details.
+
+### Enums
+
+- `MealType`: `BREAKFAST`, `LUNCH`, `DINNER`, `SNACKS`
+- `EntrySource`: `MANUAL`, `AI_IMAGE`, `AI_ASSISTANT`, `PDF_IMPORT`
+- `AiExtractionStatus`: `PENDING`, `SUCCESS`, `FAILED`
+
+Food entries are indexed by user/date and user/meal type. Goals are indexed by user/active status. AI extractions are indexed by user/creation time. User-owned records cascade when a user is deleted.
+
+### Source Provenance
+
+Source is assigned by the creation workflow and is not changed during edits:
+
+| Workflow | Stored source |
+| --- | --- |
+| Manual form | `MANUAL` |
+| AI image extraction | `AI_IMAGE` |
+| AI Assistant | `AI_ASSISTANT` |
+| PDF import | `PDF_IMPORT` |
+
+## Local Development
+
+### Prerequisites
+
+- Node.js and npm
+- Docker Desktop, or PostgreSQL 16 running locally
+- Gemini API key for AI image and assistant features
+
+### Setup
+
+From the repository root:
+
+```bash
+npm install
+docker compose up postgres
+npm run prisma:generate
+npm run prisma:migrate
+npm run prisma:seed --workspace backend
+npm run dev
+```
+
+Create or update `backend/.env` with the values described in [Environment Variables](#environment-variables). Do not commit real secrets.
+
+The seed includes:
+
+```text
+Email:    demo@nutritrack.ai
+Password: Password@123
+```
+
+Local URLs:
+
+| Service | URL |
+| --- | --- |
+| Frontend | `http://localhost:5173` |
+| Backend API | `http://localhost:5000` |
+| Swagger UI | `http://localhost:5000/api/docs` |
+| PostgreSQL | `localhost:5432` |
+
+### Useful Commands
+
+```bash
+npm run build
+npm run lint
+npm run format
+npm run test --workspace backend
+npm run prisma:studio --workspace backend
+```
+
+## Docker Setup
+
+```bash
+docker compose up --build
+```
+
+Docker Compose starts PostgreSQL 16 Alpine and the production backend. PostgreSQL uses a persistent `postgres_data` volume and a health check; the backend waits for PostgreSQL and exposes port `5000`. Uploaded files are mounted from `./backend/uploads`.
+
+The frontend is not containerized by the current Compose file. Run it locally with `npm run dev` or deploy it separately. The backend image generates Prisma Client and builds TypeScript, but migrations should be applied explicitly for a fresh or production database:
+
+```bash
+npx prisma migrate deploy --schema backend/prisma/schema.prisma
+```
+
+## Environment Variables
+
+Backend configuration is loaded from `backend/.env`.
+
+| Variable | Required | Description |
+| --- | ---: | --- |
+| `DATABASE_URL` | Yes | PostgreSQL connection string |
+| `JWT_SECRET` | Yes | Secret used to sign access tokens |
+| `JWT_EXPIRES_IN` | No | JWT lifetime; defaults to `7d` |
+| `GEMINI_API_KEY` | AI features | Google Gemini API key |
+| `GEMINI_MODEL` | No | Defaults to `gemini-3.6-flash` |
+| `PORT` | No | Backend port; defaults to `5000` |
+| `CLIENT_ORIGIN` | No | Allowed frontend origin; defaults to `http://localhost:5173` |
+| `VITE_API_BASE_URL` | Frontend | Frontend API base URL; defaults to `http://localhost:5000/api` |
+
+Never commit real passwords, JWT secrets, API keys, or production database URLs.
+
+## Security Considerations
+
+- JWT bearer authentication protects application routes.
+- bcrypt hashes passwords before persistence.
+- Joi validates API payloads and strips unknown fields.
+- User-owned data is scoped by authenticated user ID.
+- Helmet adds security headers and CORS is configurable.
+- Uploads are limited by type/extension and size.
+- Food entry timestamps reject future values.
+- Source provenance is server-controlled and immutable during edits.
+- Prisma relations enforce user ownership and cascading cleanup.
+
+Production hardening still recommended:
+
+- Move JWT storage from browser localStorage to a stronger cookie-based session strategy.
+- Add rate limiting and abuse controls.
+- Add malware scanning, authenticated asset delivery, retention policies, and object storage for uploads.
+- Use production secrets instead of Docker Compose placeholders.
+- Add observability, audit logging, and automated dependency/security scanning.
+
+## Known Limitations
+
+- PDF import targets structured, text-based tabular PDFs and CSV exports saved as PDF. Extraction behavior varies by PDF generator and fails when table boundaries are lost.
+- Scanned PDFs, image-only PDFs, OCR PDFs, and complex layouts are not supported.
+- Gemini nutrition values are estimates and should be reviewed before saving.
+- AI features require a valid Gemini API key and available configured model.
+- The assistant uses supported intent workflows rather than general-purpose conversation.
+- Chat persistence is browser-local and limited to the latest 50 messages; it is not server-side history.
+- Uploaded files are stored on disk without a complete retention, malware-scanning, or object-storage lifecycle.
+- No barcode scanning, food database lookup, export workflow, or advanced personalized analytics is implemented.
+- Docker Compose does not run database migrations automatically.
+- Automated test coverage is currently focused and is not a full end-to-end suite.
+
+## Future Improvements
+
+- OCR support for scanned and image-only PDFs.
+- More robust table extraction for complex PDF layouts.
+- Server-side conversation history with retention and search.
+- Multi-user analytics and cohort insights.
+- CSV, PDF, and spreadsheet export functionality.
+- Enhanced reporting with trends, comparisons, and personalized recommendations.
+- Barcode scanning and packaged-food integrations.
+- Production-grade upload storage, processing queues, and observability.
 
 ## Project Structure
 
@@ -80,326 +440,52 @@ Controllers translate HTTP requests into application calls and standardize respo
 │   │   ├── schema.prisma
 │   │   └── seed.ts
 │   ├── src/
-│   │   ├── config/                 # Environment and Prisma client setup
-│   │   ├── middlewares/            # Auth, validation, uploads, errors
+│   │   ├── config/                 # Environment, Prisma, Swagger
+│   │   ├── middlewares/            # Auth, validation, upload, errors
 │   │   ├── modules/
-│   │   │   ├── ai/                 # Image nutrition extraction and save flow
-│   │   │   ├── auth/               # Registration, login, current user
-│   │   │   ├── chat/               # Intent classification and assistant actions
-│   │   │   ├── dashboard/          # Daily summary and progress data
-│   │   │   ├── foodEntries/        # Food entry CRUD and listing
-│   │   │   ├── goals/              # Active and historical nutrition goals
-│   │   │   ├── pdfImport/          # PDF preview, parsing, and confirmation
-│   │   │   └── reports/            # Calories, macros, and goal comparisons
+│   │   │   ├── ai/                 # Gemini image extraction
+│   │   │   ├── auth/               # Registration and login
+│   │   │   ├── chat/               # Assistant intents and responses
+│   │   │   ├── dashboard/          # Daily summary
+│   │   │   ├── foodEntries/        # Meal CRUD
+│   │   │   ├── goals/              # Goal versions
+│   │   │   ├── pdfImport/          # Text PDF parsing and confirmation
+│   │   │   └── reports/            # Calorie and macro reports
 │   │   ├── routes/
 │   │   ├── types/
 │   │   └── utils/
-│   ├── Dockerfile
-│   └── package.json
+│   └── Dockerfile
 ├── frontend/
 │   ├── src/
-│   │   ├── api/                   # Shared authenticated API client
-│   │   ├── components/ui/         # Reusable UI primitives
+│   │   ├── api/
+│   │   ├── components/
 │   │   ├── features/
-│   │   │   ├── aiUpload/          # AI analysis page and API calls
-│   │   │   ├── auth/              # Login, registration, route guards
-│   │   │   ├── chat/              # Assistant page
-│   │   │   ├── dashboard/         # Dashboard page and types
-│   │   │   ├── goals/             # Goal management page
-│   │   │   ├── meals/             # Food entry management page
-│   │   │   ├── pdfImport/         # PDF upload and review page
-│   │   │   └── reports/           # Charts and report page
+│   │   │   ├── aiUpload/
+│   │   │   ├── auth/
+│   │   │   ├── chat/
+│   │   │   ├── dashboard/
+│   │   │   ├── goals/
+│   │   │   ├── meals/
+│   │   │   ├── pdfImport/
+│   │   │   └── reports/
 │   │   └── layouts/
 │   └── package.json
 ├── docker-compose.yml
-├── .env.example
+├── package-lock.json
 └── package.json
 ```
 
-The frontend routes are `/login`, `/register`, `/`, `/goals`, `/meals`, `/reports`, `/ai-upload`, `/assistant`, and `/pdf-import`. Protected application pages are rendered inside `AppLayout` after authentication.
-
-## Database Design
-
-The Prisma schema contains four application models:
-
-- **User:** Stores the account name, unique email, bcrypt password hash, and timestamps.
-- **NutritionGoal:** Stores daily calorie, protein, carbohydrate, fat, and optional weight targets. A user can have many historical goals, with active goals identified by `isActive`.
-- **FoodEntry:** Stores a user’s meal type, food name, quantity, unit, entry date, calorie and macro values, optional fiber, and source (`MANUAL` or `AI_IMAGE`).
-- **AiExtraction:** Stores the uploaded image path, raw Gemini response, normalized nutrition JSON, processing status, and any error message.
-
-Relationships are user-owned and cascade on user deletion: one `User` has many `NutritionGoal`, `FoodEntry`, and `AiExtraction` records. Food entries and goals are indexed for user/date and user/active-state queries; AI extractions are indexed by user and creation time.
-
-## API Overview
-
-The API is served under `http://localhost:5000/api`. Authenticated endpoints expect `Authorization: Bearer <jwt>`.
-
-### Health and Authentication
-
-| Method | Endpoint | Purpose |
-| --- | --- | --- |
-| GET | `/health` | Health check |
-| POST | `/auth/register` | Create an account and return a token |
-| POST | `/auth/login` | Authenticate and return a token |
-| GET | `/auth/me` | Return the authenticated user |
-
-### Goals, Food Entries, and Dashboard
-
-| Method | Endpoint | Purpose |
-| --- | --- | --- |
-| GET | `/dashboard/summary` | Today’s totals, targets, progress, meal breakdown, and recent meals |
-| GET | `/goals/current` | Get the active goal |
-| GET | `/goals/history` | List a user’s goals |
-| POST | `/goals` | Create a new active goal |
-| PUT | `/goals/current` | Update the active goal |
-| POST | `/food-entries` | Create a food entry |
-| GET | `/food-entries` | List entries with date, meal, page, and limit filters |
-| GET | `/food-entries/:id` | Get one food entry |
-| PUT | `/food-entries/:id` | Update a food entry |
-| DELETE | `/food-entries/:id` | Delete a food entry |
-
-### Reports
-
-| Method | Endpoint | Purpose |
-| --- | --- | --- |
-| GET | `/reports/weekly-calories?startDate=...&endDate=...` | Return a daily calorie trend for the requested range |
-| GET | `/reports/macro-breakdown?startDate=...&endDate=...` | Return protein, carbohydrate, and fat totals |
-| GET | `/reports/goal-comparison?date=...` | Compare consumed nutrition with the active goal |
-
-### AI, Chat, and PDF Import
-
-| Method | Endpoint | Purpose |
-| --- | --- | --- |
-| POST | `/ai/extract-nutrition` | Upload an image in the `image` field and extract nutrition values |
-| POST | `/ai/save-entry` | Save reviewed AI nutrition values as a food entry |
-| POST | `/chat/message` | Classify and handle a supported assistant message |
-| POST | `/pdf-import/preview` | Upload a PDF in the `pdf` field and preview parsed entries |
-| POST | `/pdf-import/confirm` | Validate and create reviewed PDF rows, up to 200 entries |
-
-Responses use the application’s `{ success, data, message }` response shape. Request validation is performed with Joi, and protected routes use the JWT authentication middleware.
-
-## Swagger Documentation
-
-Interactive OpenAPI documentation is available while the backend is running:
-
-```text
-http://localhost:5000/api/docs
-```
-
-The documentation covers all authentication, goal, food-entry, dashboard, report, AI, chat, and PDF-import endpoints. To call protected endpoints from Swagger UI:
-
-1. Register or log in through the documented auth endpoint and copy the returned `data.token` value.
-2. Select **Authorize** in the Swagger UI.
-3. Paste the JWT into the bearer authentication field and select **Authorize**.
-4. Execute protected requests; Swagger sends the token as `Authorization: Bearer <token>`.
-
-The OpenAPI document is generated with `swagger-jsdoc` and served through `swagger-ui-express`. Swagger configuration is kept in `backend/src/config/swagger.ts`.
-
-## AI Features
-
-### Gemini Vision Nutrition Extraction
-
-`POST /api/ai/extract-nutrition` accepts an image upload up to 5 MB. The backend sends the image and a strict JSON nutrition prompt to the configured Gemini model. The response is parsed and normalized into food name, quantity, unit, calories, protein, carbs, fat, and fiber. The raw response and normalized result are recorded in `AiExtraction`.
-
-The user can review the extraction in the frontend before calling `/api/ai/save-entry`. Saved entries use `source = AI_IMAGE`; failed extractions are recorded with `FAILED` status and an error message.
-
-### Conversational Nutrition Assistant
-
-`POST /api/chat/message` sends the user message to Gemini for intent classification. Supported intents are:
-
-- `CREATE_FOOD_ENTRY`: estimate nutrition and create a meal entry for today.
-- `GET_CURRENT_GOAL`: return the active nutrition goal.
-- `GET_TODAY_PROGRESS`: return consumed values and targets for today.
-- `GET_WEEKLY_REPORT`: return weekly calorie trend, total, and average.
-- `NUTRITION_QUESTION`: answer a concise nutrition question through Gemini.
-- `UNKNOWN`: return a bounded explanation of supported assistant capabilities.
-
-This is an application assistant with explicitly supported intents, not a general-purpose chat history system.
-
-## PDF Import
-
-The PDF workflow is upload, preview, user review, and confirmation. `POST /api/pdf-import/preview` accepts PDFs up to 10 MB and extracts text in memory. The parser recognizes tabular rows with these required columns:
-
-- Date
-- Food Name
-- Meal Type
-- Calories
-- Protein
-- Carbs
-- Fat
-
-Common header variants such as `Food`, `Item`, `Meal`, `Kcal`, `Energy`, and `Carbohydrates` are supported. Rows may use comma, tab, pipe, or clearly spaced column separation. Confirmed rows are validated before being written as `FoodEntry` records with `source = MANUAL`.
-
-**Supported:** text-based PDFs containing extractable food diary text.
-
-**Not supported:** OCR, scanned/image-only PDFs, and complex multi-line table rows. PDF import does not send documents to Gemini.
-
-## Setup
-
-### Local Development
-
-Prerequisites:
-
-- Node.js compatible with the repository dependencies
-- npm
-- Docker Desktop or a local PostgreSQL 16 instance
-- A Gemini API key for AI features
-
-1. Install workspace dependencies from the repository root:
-
-	```bash
-	npm install
-	```
-
-2. Create the environment file from the supplied template:
-
-	```bash
-	copy .env.example .env
-	```
-
-	On macOS/Linux, use `cp .env.example .env` instead. Set a real `JWT_SECRET` and `GEMINI_API_KEY` before using authentication or AI features.
-
-3. Start PostgreSQL:
-
-	```bash
-	docker compose up postgres
-	```
-
-4. Generate the Prisma client and apply the development migration:
-
-	```bash
-	npm run prisma:generate
-	npm run prisma:migrate
-	```
-
-5. Optionally load the demo account and sample goal/meal data:
-
-	```bash
-	npm run prisma:seed --workspace backend
-	```
-
-	The seed creates `demo@nutritrack.ai` with password `Password@123`.
-
-6. Start the frontend and backend development servers:
-
-	```bash
-	npm run dev
-	```
-
-	The frontend is available at `http://localhost:5173`, and the API is available at `http://localhost:5000`.
-
-Useful workspace commands:
-
-```bash
-npm run build
-npm run lint
-npm run prisma:studio
-```
-
-## Docker
-
-Run the containerized database and backend with:
-
-```bash
-docker compose up --build
-```
-
-This starts:
-
-- `postgres`: PostgreSQL 16 on port `5432`, with a health check and persistent `postgres_data` volume.
-- `backend`: the production Node.js API on port `5000`, waiting for PostgreSQL health before starting.
-
-The backend image runs Prisma client generation during its build and serves compiled code from `dist`. Uploaded files are persisted through `./backend/uploads:/app/uploads`. The current Compose file does not build the frontend; run the Vite frontend locally with `npm run dev` or deploy it separately.
-
-## Environment Variables
-
-The repository includes `.env.example` with the local-development defaults below:
-
-| Variable | Required | Description |
-| --- | --- | --- |
-| `DATABASE_URL` | Yes | PostgreSQL connection string used by Prisma |
-| `JWT_SECRET` | Yes | Secret used to sign JWT access tokens |
-| `JWT_EXPIRES_IN` | No | JWT lifetime; defaults to `7d` |
-| `GEMINI_API_KEY` | For AI | Gemini API key; AI routes return an error when it is absent |
-| `CLIENT_ORIGIN` | No | Allowed frontend origin; defaults to `http://localhost:5173` |
-| `GEMINI_MODEL` | No | Gemini model name; defaults to `gemini-3.6-flash` |
-| `PORT` | No | Backend port; defaults to `5000` |
-| `VITE_API_BASE_URL` | Frontend | Frontend API base URL; defaults to `http://localhost:5000/api` |
-
-Do not commit real secrets or production database credentials.
-
-## Demo Video
-
-A complete walkthrough of NutriTrack AI is available here:
-
-[Insert YouTube / Google Drive / Loom Video Link]
-
-The demo should showcase:
-
-- User registration
-- Login
-- Goal creation
-- Food entry CRUD
-- Dashboard
-- Reports and charts
-- AI nutrition extraction
-- Conversational assistant
-- PDF import
-- Docker setup
-
-## Screenshots
-
-Add screenshots of the following application views after capturing the final UI:
-
-### Login Page
-
-_[Screenshot placeholder]_ 
-
-### Register Page
-
-_[Screenshot placeholder]_
-
-### Dashboard
-
-_[Screenshot placeholder]_
-
-### Goals
-
-_[Screenshot placeholder]_
-
-### Meals
-
-_[Screenshot placeholder]_
-
-### Reports
-
-_[Screenshot placeholder]_
-
-### AI Analysis
-
-_[Screenshot placeholder]_
-
-### Chat Assistant
-
-_[Screenshot placeholder]_
-
-### PDF Import
-
-_[Screenshot placeholder]_
-
-## Assumptions
-
-- This is an MVP for personal nutrition tracking; it is not a medical diagnosis or treatment product.
-- Nutrition values entered manually or estimated by Gemini are user-reviewable estimates, not laboratory measurements.
-- One active nutrition goal is used for dashboard and report comparisons; older goals remain available as history.
-- Food entries are timestamped using the server’s date handling and grouped into the requested calendar-day ranges.
-- The assistant intentionally supports a small set of product intents instead of maintaining a general conversation history.
-- PDF imports require extractable text and create manual food entries after user confirmation.
-- Uploaded images and PDF files are stored in the backend uploads area; production deployments should add retention, access-control, and object-storage policies.
-
-## Future Improvements
-
-- OCR support for scanned PDFs and image-only documents.
-- Barcode scanning and packaged-food lookup.
-- Advanced analytics, trends, and personalized insights.
-- Export functionality for food logs and reports.
-- Stronger production file lifecycle management and cloud object storage.
+## Submission Demo Checklist
+
+1. Register or log in.
+2. Create and update a nutrition goal.
+3. Add and edit a manual meal.
+4. Review the dashboard and reports.
+5. Upload and review nutrition data from an image.
+6. Log a meal through the AI Assistant.
+7. Preview and import a structured PDF diary.
+8. Switch between light and dark themes.
+
+## License
+
+No license has been declared in the repository yet. Add a license file before distributing the project publicly.

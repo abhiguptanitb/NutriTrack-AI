@@ -9,6 +9,7 @@ import {
 } from "react";
 import { getCurrentUser, loginUser, registerUser } from "./auth.api";
 import type { AuthUser } from "./auth.types";
+import { CHAT_HISTORY_KEY_PREFIX } from "../chat/chat.types";
 
 type AuthContextValue = {
   user: AuthUser | null;
@@ -30,6 +31,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const logout = useCallback(() => {
     localStorage.removeItem(TOKEN_KEY);
+    Object.keys(localStorage)
+      .filter((key) => key.startsWith(CHAT_HISTORY_KEY_PREFIX))
+      .forEach((key) => localStorage.removeItem(key));
     setToken(null);
     setUser(null);
   }, []);

@@ -49,6 +49,9 @@ export class ReportRepository {
         protein: true,
         carbs: true,
         fat: true
+      },
+      _count: {
+        _all: true
       }
     });
   }

@@ -1,13 +1,16 @@
 import type { Prisma } from "@prisma/client";
 import { AppError } from "../../utils/appError.js";
 import { getPagination } from "../../utils/pagination.js";
+import { assertEntryDateTimeNotFuture } from "../../utils/entryDateTime.js";
 import { FoodEntryRepository } from "./foodEntry.repository.js";
 
 const foodEntryRepository = new FoodEntryRepository();
 
 export class FoodEntryService {
   create(userId: string, data: any) {
-    return foodEntryRepository.create(userId, { ...data, entryDate: new Date(data.entryDate) });
+    const entryDate = new Date(data.entryDate);
+    assertEntryDateTimeNotFuture(entryDate);
+    return foodEntryRepository.create(userId, { ...data, entryDate, source: "MANUAL" });
   }
 
   async getById(userId: string, id: string) {
@@ -20,8 +23,13 @@ export class FoodEntryService {
 
   async update(userId: string, id: string, data: any) {
     await this.getById(userId, id);
+    if (data.entryDate) {
+      assertEntryDateTimeNotFuture(new Date(data.entryDate));
+    }
+
+    const { source: _source, ...editableData } = data;
     return foodEntryRepository.update(id, {
-      ...data,
+      ...editableData,
       entryDate: data.entryDate ? new Date(data.entryDate) : undefined
     });
   }

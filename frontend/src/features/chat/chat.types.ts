@@ -18,3 +18,5 @@ export type ChatMessage = {
   content: string;
   intent?: ChatIntent;
 };
+
+export const CHAT_HISTORY_KEY_PREFIX = "nutritrack_chat_messages_";
