@@ -88,6 +88,7 @@ export class PdfImportService {
   }
 
   private parseEntries(text: string): PreviewEntry[] {
+    // PDF extraction often loses table layout, so rows are normalized before parsing.
     const lines = text
       .split(/\r?\n/)
       .map((line) => line.replace(/\s+/g, " ").trim())
@@ -125,6 +126,7 @@ export class PdfImportService {
   private findHeader(lines: string[]) {
     for (let startIndex = 0; startIndex < lines.length; startIndex += 1) {
       for (let span = 1; span <= Math.min(requiredHeaders.length, lines.length - startIndex); span += 1) {
+        // Some PDF generators split headers across lines, so test a small multi-line window.
         const text = lines.slice(startIndex, startIndex + span).join(" ");
         if (this.isSupportedHeader(text)) {
           return { text, endIndex: startIndex + span - 1 };
@@ -145,6 +147,7 @@ export class PdfImportService {
   }
 
   private parseLine(line: string): PreviewEntry | null {
+    // Try the most specific parser first, then fall back to common table delimiters.
     return this.parseMealAnchoredLine(line) ?? this.parseDelimitedLine(line) ?? this.parseSpaceSeparatedLine(line);
   }
 
@@ -166,6 +169,7 @@ export class PdfImportService {
       return null;
     }
 
+    // This handles rows where date, food, and meal type survived but separators between macros changed.
     const separatedValues = nutritionText.match(/^(\d+(?:\.\d+)?)[\s,|]+(\d+(?:\.\d+)?)[\s,|]+(\d+(?:\.\d+)?)[\s,|]+(\d+(?:\.\d+)?)$/);
     if (separatedValues) {
       return this.toPreviewEntry({
@@ -317,6 +321,7 @@ export class PdfImportService {
     const first = Number(slashMatch[1]);
     const second = Number(slashMatch[2]);
     const year = this.normalizeYear(Number(slashMatch[3]));
+    // Prefer MM/DD/YYYY, but allow DD/MM/YYYY when the first value cannot be a month.
     const month = first > 12 ? second : first;
     const day = first > 12 ? first : second;
 

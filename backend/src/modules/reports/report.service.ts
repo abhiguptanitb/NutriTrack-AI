@@ -31,6 +31,7 @@ export class ReportService {
       rows.map((row) => [row.day.toISOString().slice(0, 10), Number(row.calories ?? 0)])
     );
 
+    // Fill missing dates with zeroes so charts show a continuous week instead of only logged days.
     return this.daysBetween(startDate, endDate).map((date) => ({
       date: date.toISOString().slice(0, 10),
       day: dayLabels[date.getDay()],

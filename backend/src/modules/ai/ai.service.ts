@@ -65,6 +65,7 @@ export class AiService {
       ]);
 
       const text = result.response.text();
+      // Gemini can wrap JSON in markdown or extra text, so parse only the object payload.
       const parsed = this.parseGeminiJson(text);
       const nutrition = this.normalizeNutrition(parsed);
       const saved = await aiRepository.markSuccess(extraction.id, { text }, nutrition);
@@ -84,6 +85,7 @@ export class AiService {
     return foodEntryRepository.create(userId, {
       ...data,
       entryDate,
+      // Preserve provenance so image-created meals stay identifiable after later edits.
       source: "AI_IMAGE"
     });
   }
@@ -107,6 +109,7 @@ export class AiService {
 
     const record = value as Record<string, unknown>;
 
+    // AI output is treated as untrusted input before it is shown for review or saved.
     return {
       foodName: this.cleanText(record.foodName, "Unknown food"),
       quantity: this.cleanNumber(record.quantity),

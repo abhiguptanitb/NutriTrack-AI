@@ -20,6 +20,7 @@ export const requireAuth: RequestHandler = async (req, _res, next) => {
 
   try {
     const payload = jwt.verify(token, env.JWT_SECRET) as JwtPayload;
+    // Re-read the user on every request so deleted accounts cannot keep using an old JWT.
     const user = await prisma.user.findUnique({
       where: { id: payload.sub },
       select: { id: true, email: true, name: true }

@@ -77,6 +77,7 @@ For unsupported requests, return {"intent":"UNKNOWN"}.
 
 export class ChatService {
   async handleMessage(userId: string, message: string) {
+    // The assistant first resolves a narrow product intent, then routes to deterministic app workflows.
     const classification = await this.classifyMessage(message);
 
     switch (classification.intent) {
@@ -119,6 +120,7 @@ export class ChatService {
       carbs: this.cleanNumber(classification.carbs),
       fat: this.cleanNumber(classification.fat),
       fiber: this.cleanNumber(classification.fiber),
+      // Assistant-created entries keep their origin even if the user edits the meal later.
       source: "AI_ASSISTANT"
     });
 
@@ -267,6 +269,7 @@ export class ChatService {
     ];
 
     if (!supported.includes(intent)) {
+      // Unknown intents are rejected instead of being allowed to call arbitrary workflows.
       return { intent: "UNKNOWN" };
     }
 
@@ -355,6 +358,7 @@ export class ChatService {
     const latestEntryDate = bounds._max.entryDate ?? undefined;
     const referenceDate = this.getReferenceDate(bounds._min.entryDate, latestEntryDate, today);
 
+    // Relative requests use the latest seeded data in development, but real current dates in production.
     const relativeRange = inferredRange ?? classification.relativeRange;
     if (relativeRange) {
       const resolvedDate = new Date(referenceDate);

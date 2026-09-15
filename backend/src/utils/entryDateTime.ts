@@ -8,6 +8,7 @@ const monthNames = ["jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep
 export function parseEntryDateTime(dateValue?: unknown, timeValue?: unknown, now = new Date()) {
   const date = parseDate(dateValue, now);
   const time = parseTime(timeValue, now);
+  // Build a local Date so separate date and time inputs match the user's local logging context.
   const entryDate = new Date(date.year, date.month, date.day, time.hours, time.minutes, 0, 0);
 
   if (Number.isNaN(entryDate.getTime())) {
@@ -80,6 +81,7 @@ function parseTime(value: unknown, now: Date) {
   if (period === "AM" && hours === 12) {
     hours = 0;
   } else if (period === "PM" && hours !== 12) {
+    // Store AM/PM input as 24-hour time before persistence and comparisons.
     hours += 12;
   }
 

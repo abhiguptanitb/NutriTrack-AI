@@ -10,6 +10,7 @@ export class FoodEntryService {
   create(userId: string, data: any) {
     const entryDate = new Date(data.entryDate);
     assertEntryDateTimeNotFuture(entryDate);
+    // Manual creation owns the source value; clients cannot label a manual entry as AI/PDF-generated.
     return foodEntryRepository.create(userId, { ...data, entryDate, source: "MANUAL" });
   }
 
@@ -27,6 +28,7 @@ export class FoodEntryService {
       assertEntryDateTimeNotFuture(new Date(data.entryDate));
     }
 
+    // Source is immutable provenance metadata, so edits can change nutrition fields but not origin.
     const { source: _source, ...editableData } = data;
     return foodEntryRepository.update(id, {
       ...editableData,

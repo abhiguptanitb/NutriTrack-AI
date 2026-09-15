@@ -10,6 +10,7 @@ export class GoalRepository {
 
   async createActive(userId: string, data: GoalData) {
     return prisma.$transaction(async (tx) => {
+      // Goal versioning keeps exactly one active goal while retaining older goals as history.
       await tx.nutritionGoal.updateMany({
         where: { userId, isActive: true },
         data: { isActive: false }

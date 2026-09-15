@@ -33,6 +33,7 @@ function loadMessages(storageKey: string): ChatMessage[] {
       return [welcomeMessage];
     }
 
+    // Local chat history is browser-owned data, so validate the shape before rendering it.
     const messages = parsed.filter(
       (item): item is ChatMessage =>
         Boolean(item) &&
@@ -66,6 +67,7 @@ export function ChatPage() {
   }, [storageKey]);
 
   useEffect(() => {
+    // Keep only the latest conversation window to avoid unbounded localStorage growth.
     const history = messages.filter((item) => item.id !== welcomeMessage.id).slice(-50);
     if (history.length) {
       localStorage.setItem(storageKey, JSON.stringify(history));
