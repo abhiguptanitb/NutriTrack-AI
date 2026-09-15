@@ -25,9 +25,7 @@ Nutrition data is often split between notes, screenshots, food labels, spreadshe
 
 ## Demo Video
 
-> Replace the placeholder below with a YouTube, Google Drive, or Loom URL.
-
-[Watch the NutriTrack AI Demo](ADD_DEMO_VIDEO_LINK_HERE)
+[Watch the NutriTrack AI Demo](assets/demo/final%20demo%20video.mp4)
 
 ## Project Gallery
 
