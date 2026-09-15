@@ -100,6 +100,7 @@ See the full screenshot set in [Screenshots](#screenshots).
 
 - Upload a text-based tabular food diary PDF.
 - Preview parsed rows before confirmation.
+- Users can review the previewed rows before import because PDF formatting can vary across generators.
 - Responsive editable meal cards instead of a horizontally scrolling spreadsheet.
 - Supports structured delimiters and deterministic meal-type-anchored rows when separators are lost.
 - Editable food name, meal type, date, calories, protein, carbs, and fat.
