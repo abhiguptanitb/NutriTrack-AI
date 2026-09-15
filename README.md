@@ -31,21 +31,21 @@ Nutrition data is often split between notes, screenshots, food labels, spreadshe
 
 ## Project Gallery
 
-The gallery below is ready for final product screenshots. Replace each placeholder with an image URL without changing the surrounding structure.
+The gallery below highlights the main product screens.
 
 | Dashboard | Meal Tracking |
 | --- | --- |
-| [Insert Dashboard Screenshot](ADD_DASHBOARD_IMAGE_URL_HERE) | [Insert Meals Screenshot](ADD_MEALS_IMAGE_URL_HERE) |
+| ![Dashboard](assets/screenshots/dashboard.png) | ![Meal Tracking](assets/screenshots/meals.png) |
 
 | AI Nutrition Review | AI Assistant |
 | --- | --- |
-| [Insert AI Nutrition Screenshot](ADD_AI_NUTRITION_IMAGE_URL_HERE) | [Insert AI Assistant Screenshot](ADD_AI_ASSISTANT_IMAGE_URL_HERE) |
+| ![AI Nutrition Review](assets/screenshots/ai_upload.png) | ![AI Assistant](assets/screenshots/ai_assistant.png) |
 
 | PDF Import | Reports |
 | --- | --- |
-| [Insert PDF Import Screenshot](ADD_PDF_IMPORT_IMAGE_URL_HERE) | [Insert Reports Screenshot](ADD_REPORTS_IMAGE_URL_HERE) |
+| ![PDF Import](assets/screenshots/pdf_import.png) | ![Reports](assets/screenshots/reports.png) |
 
-See the full placeholder checklist in [Screenshots](#screenshots).
+See the full screenshot set in [Screenshots](#screenshots).
 
 ## Features
 
@@ -133,59 +133,37 @@ See the full placeholder checklist in [Screenshots](#screenshots).
 
 ## Screenshots
 
-Replace each placeholder with a Markdown image link, for example:
-
-```markdown
-![Login Page](assets/screenshots/login.png)
-```
-
 ### Login Page
 
-<!-- Replace with: ![Login Page](YOUR_IMAGE_URL) -->
-
-[Insert Login Screenshot Here](ADD_LOGIN_IMAGE_URL_HERE)
+![Login Page](assets/screenshots/login.png)
 
 ### Dashboard
 
-<!-- Replace with: ![Dashboard](YOUR_IMAGE_URL) -->
-
-[Insert Dashboard Screenshot Here](ADD_DASHBOARD_IMAGE_URL_HERE)
+![Dashboard](assets/screenshots/dashboard.png)
 
 ### Goals Management
 
-<!-- Replace with: ![Goals Management](YOUR_IMAGE_URL) -->
-
-[Insert Goals Screenshot Here](ADD_GOALS_IMAGE_URL_HERE)
+![Goals Management](assets/screenshots/goal.png)
 
 ### Meal Tracking
 
-<!-- Replace with: ![Meal Tracking](YOUR_IMAGE_URL) -->
-
-[Insert Meals Screenshot Here](ADD_MEALS_IMAGE_URL_HERE)
+![Meal Tracking](assets/screenshots/meals.png)
 
 ### AI Nutrition Analysis
 
-<!-- Replace with: ![AI Nutrition Analysis](YOUR_IMAGE_URL) -->
-
-[Insert AI Nutrition Screenshot Here](ADD_AI_NUTRITION_IMAGE_URL_HERE)
+![AI Nutrition Analysis](assets/screenshots/ai_upload.png)
 
 ### AI Assistant
 
-<!-- Replace with: ![AI Assistant](YOUR_IMAGE_URL) -->
-
-[Insert AI Assistant Screenshot Here](ADD_AI_ASSISTANT_IMAGE_URL_HERE)
+![AI Assistant](assets/screenshots/ai_assistant.png)
 
 ### PDF Import
 
-<!-- Replace with: ![PDF Import](YOUR_IMAGE_URL) -->
-
-[Insert PDF Import Screenshot Here](ADD_PDF_IMPORT_IMAGE_URL_HERE)
+![PDF Import](assets/screenshots/pdf_import.png)
 
 ### Reports and Analytics
 
-<!-- Replace with: ![Reports and Analytics](YOUR_IMAGE_URL) -->
-
-[Insert Reports Screenshot Here](ADD_REPORTS_IMAGE_URL_HERE)
+![Reports and Analytics](assets/screenshots/reports.png)
 
 ## Technology Stack
 
