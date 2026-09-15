@@ -297,13 +297,15 @@ From the repository root:
 ```bash
 npm install
 docker compose up postgres
+cp backend/.env.example backend/.env
+cp frontend/.env.example frontend/.env
 npm run prisma:generate
 npm run prisma:migrate
 npm run prisma:seed --workspace backend
 npm run dev
 ```
 
-Create or update `backend/.env` with the values described in [Environment Variables](#environment-variables). Do not commit real secrets.
+Create or update `backend/.env` with the values described in [Environment Variables](#environment-variables), including a valid `GEMINI_API_KEY` for AI features. Do not commit real secrets.
 
 The seed includes:
 
@@ -382,29 +384,16 @@ Production hardening still recommended:
 - Use production secrets instead of Docker Compose placeholders.
 - Add observability, audit logging, and automated dependency/security scanning.
 
-## Known Limitations
+## Current Scope and Future Enhancements
 
-- PDF import targets structured, text-based tabular PDFs and CSV exports saved as PDF. Extraction behavior varies by PDF generator and fails when table boundaries are lost.
-- Scanned PDFs, image-only PDFs, OCR PDFs, and complex layouts are not supported.
-- Gemini nutrition values are estimates and should be reviewed before saving.
-- AI features require a valid Gemini API key and available configured model.
-- The assistant uses supported intent workflows rather than general-purpose conversation.
-- Chat persistence is browser-local and limited to the latest 50 messages; it is not server-side history.
-- Uploaded files are stored on disk without a complete retention, malware-scanning, or object-storage lifecycle.
-- No barcode scanning, food database lookup, export workflow, or advanced personalized analytics is implemented.
-- Docker Compose does not run database migrations automatically.
-- Automated test coverage is currently focused and is not a full end-to-end suite.
+NutriTrack AI is built as an MVP focused on the core nutrition workflow: goal setting, meal logging, AI-assisted extraction, PDF diary import, dashboard summaries, and reporting. The current implementation keeps the product focused while leaving room for production-level enhancements:
 
-## Future Improvements
-
-- OCR support for scanned and image-only PDFs.
-- More robust table extraction for complex PDF layouts.
-- Server-side conversation history with retention and search.
-- Multi-user analytics and cohort insights.
-- CSV, PDF, and spreadsheet export functionality.
-- Enhanced reporting with trends, comparisons, and personalized recommendations.
-- Barcode scanning and packaged-food integrations.
-- Production-grade upload storage, processing queues, and observability.
+- AI nutrition values are treated as estimates and are shown for user review before saving.
+- PDF import is optimized for text-based tabular food diaries; OCR support can be added for scanned or image-only PDFs.
+- The assistant is designed around supported nutrition workflows such as meal logging, goal checks, progress summaries, meal listing, and weekly reports.
+- Chat history is stored locally in the browser for the latest messages; a production version could add server-side conversation history.
+- Uploaded files are stored on disk for the MVP; production deployment could use object storage, retention policies, and background processing.
+- Future versions could add barcode scanning, food database integrations, export workflows, deeper analytics, and more personalized recommendations.
 
 ## Project Structure
 
