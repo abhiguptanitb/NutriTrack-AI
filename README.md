@@ -1,4 +1,4 @@
-# NutriTrack AI
+﻿# NutriTrack AI
 
 <p align="center">
   <strong>A focused nutrition workspace for goals, meals, insights, and AI-assisted logging.</strong><br />
@@ -23,6 +23,20 @@ The project is designed as a practical SaaS-style MVP with authenticated, user-s
 
 Nutrition data is often split between notes, screenshots, food labels, spreadsheets, and disconnected tracking tools. NutriTrack AI brings those inputs into one reviewable meal log while keeping the user in control of AI-generated estimates and imported records.
 
+## Assignment Coverage
+
+| Requirement Area | NutriTrack AI Implementation |
+| --- | --- |
+| Goal setting | Daily calorie, protein, carb, fat, and weight-goal management with active and historical goals. |
+| Meal entry | Manual meal logging for breakfast, lunch, dinner, and snacks with calories, macros, fiber, quantity, unit, date, and time. |
+| Time-range listing | Food entries can be filtered by date range and meal type with paginated API responses. |
+| Reports and graphs | Weekly calorie trend, macro breakdown, and goal-versus-actual comparison charts. Fiber is tracked on meal entries; full vitamin/mineral summaries are listed as a future enhancement. |
+| AI image extraction | Gemini-powered upload flow for food photos, labels, packaging, and meal screenshots with review before saving. |
+| Separate frontend and backend | React frontend communicates with a modular Express API backed by PostgreSQL and Prisma. |
+| Multi-user support | Register/login flow with JWT authentication and user-scoped data. |
+| Bonus chat interface | Gemini-backed assistant for meal logging, goal checks, progress summaries, meal listing, reports, and nutrition questions. |
+| Bonus PDF import | Text-based tabular food diary PDF upload, editable preview, validation, and import. |
+
 ## Demo Video
 
 [Watch the NutriTrack AI Demo](https://drive.google.com/file/d/1leulw8rAKWWInLjTVjzd8kTtcySV1nFV/view?usp=drive_link)
@@ -30,6 +44,10 @@ Nutrition data is often split between notes, screenshots, food labels, spreadshe
 ## Project Gallery
 
 The gallery below highlights the main product screens.
+
+| Login | Register |
+| --- | --- |
+| ![Login](assets/screenshots/login.png) | ![Register](assets/screenshots/register.png) |
 
 | Dashboard | Meal Tracking |
 | --- | --- |
@@ -110,7 +128,7 @@ See the full screenshot set in [Screenshots](#screenshots).
 
 ### Dashboard
 
-- Today’s calories and macro totals.
+- Today's calories and macro totals.
 - Goal targets and percentage progress.
 - Meal-type calorie breakdown.
 - Recent meal list with source and timestamp information.
@@ -135,6 +153,10 @@ See the full screenshot set in [Screenshots](#screenshots).
 ### Login Page
 
 ![Login Page](assets/screenshots/login.png)
+
+### Register Page
+
+![Register Page](assets/screenshots/register.png)
 
 ### Dashboard
 
@@ -394,51 +416,55 @@ NutriTrack AI is built as an MVP focused on the core nutrition workflow: goal se
 - The assistant is designed around supported nutrition workflows such as meal logging, goal checks, progress summaries, meal listing, and weekly reports.
 - Chat history is stored locally in the browser for the latest messages; a production version could add server-side conversation history.
 - Uploaded files are stored on disk for the MVP; production deployment could use object storage, retention policies, and background processing.
-- Future versions could add barcode scanning, food database integrations, export workflows, deeper analytics, and more personalized recommendations.
+- Future versions could add expanded vitamin/mineral tracking, barcode scanning, food database integrations, export workflows, deeper analytics, and more personalized recommendations.
 
 ## Project Structure
 
 ```text
 .
-├── backend/
-│   ├── prisma/
-│   │   ├── migrations/
-│   │   ├── schema.prisma
-│   │   └── seed.ts
-│   ├── src/
-│   │   ├── config/                 # Environment, Prisma, Swagger
-│   │   ├── middlewares/            # Auth, validation, upload, errors
-│   │   ├── modules/
-│   │   │   ├── ai/                 # Gemini image extraction
-│   │   │   ├── auth/               # Registration and login
-│   │   │   ├── chat/               # Assistant intents and responses
-│   │   │   ├── dashboard/          # Daily summary
-│   │   │   ├── foodEntries/        # Meal CRUD
-│   │   │   ├── goals/              # Goal versions
-│   │   │   ├── pdfImport/          # Text PDF parsing and confirmation
-│   │   │   └── reports/            # Calorie and macro reports
-│   │   ├── routes/
-│   │   ├── types/
-│   │   └── utils/
-│   └── Dockerfile
-├── frontend/
-│   ├── src/
-│   │   ├── api/
-│   │   ├── components/
-│   │   ├── features/
-│   │   │   ├── aiUpload/
-│   │   │   ├── auth/
-│   │   │   ├── chat/
-│   │   │   ├── dashboard/
-│   │   │   ├── goals/
-│   │   │   ├── meals/
-│   │   │   ├── pdfImport/
-│   │   │   └── reports/
-│   │   └── layouts/
-│   └── package.json
-├── docker-compose.yml
-├── package-lock.json
-└── package.json
+|-- assets/
+|   `-- screenshots/
+|-- backend/
+|   |-- .env.example
+|   |-- prisma/
+|   |   |-- migrations/
+|   |   |-- schema.prisma
+|   |   `-- seed.ts
+|   |-- src/
+|   |   |-- config/                 # Environment, Prisma, Swagger
+|   |   |-- middlewares/            # Auth, validation, upload, errors
+|   |   |-- modules/
+|   |   |   |-- ai/                 # Gemini image extraction
+|   |   |   |-- auth/               # Registration and login
+|   |   |   |-- chat/               # Assistant intents and responses
+|   |   |   |-- dashboard/          # Daily summary
+|   |   |   |-- foodEntries/        # Meal CRUD
+|   |   |   |-- goals/              # Goal versions
+|   |   |   |-- pdfImport/          # Text PDF parsing and confirmation
+|   |   |   `-- reports/            # Calorie and macro reports
+|   |   |-- routes/
+|   |   |-- types/
+|   |   `-- utils/
+|   `-- Dockerfile
+|-- frontend/
+|   |-- .env.example
+|   |-- src/
+|   |   |-- api/
+|   |   |-- components/
+|   |   |-- features/
+|   |   |   |-- aiUpload/
+|   |   |   |-- auth/
+|   |   |   |-- chat/
+|   |   |   |-- dashboard/
+|   |   |   |-- goals/
+|   |   |   |-- meals/
+|   |   |   |-- pdfImport/
+|   |   |   `-- reports/
+|   |   `-- layouts/
+|   `-- package.json
+|-- docker-compose.yml
+|-- package-lock.json
+`-- package.json
 ```
 
 ## Submission Demo Checklist
